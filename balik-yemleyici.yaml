@@ -1,0 +1,1035 @@
+# ========================================================
+# BALIK YEMLEYICI V2
+# ESP32-CAM + OLED
+# ========================================================
+
+esphome:
+  name: balik-yemleyici
+  friendly_name: Balik Yemleyici
+
+  on_boot:
+    priority: 600
+    then:
+      - lambda: |-
+          id(ui_boot_screen) = true;
+
+      - delay: 6s
+
+      - lambda: |-
+          id(ui_boot_screen) = false;
+          
+
+esp32:
+  board: esp32cam
+  framework:
+    type: esp-idf
+    advanced:
+      sram1_as_iram: true
+      minimum_chip_revision: "3.1"
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+api:
+  encryption:
+    key: "9kKnZ/GA8GOJkSP13pSMAyJK8xtURfB8yPVRTIeUdHk="
+
+ota:
+  - platform: esphome
+    id: ota_update
+
+    on_begin:
+      then:
+        - lambda: |-
+            id(system_lock_ota) = true;
+            id(ota_in_progress) = true;
+            id(ota_progress_percent) = 0;
+
+            id(ekranim).show_page(id(ota_page));
+            id(ekranim).update();
+
+    on_progress:
+      then:
+        - lambda: |-
+            id(ota_progress_percent) = (int)(x * 100.0f);
+
+    on_end:
+      then:
+        - lambda: |-
+            id(system_lock_ota) = false;
+            id(ota_in_progress) = false;
+            id(ota_progress_percent) = 100;
+
+    on_error:
+      then:
+        - lambda: |-
+            id(system_lock_ota) = false;
+            id(ota_in_progress) = false;
+
+wifi:
+  id: wifi_durum
+
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  reboot_timeout: 0s
+
+  manual_ip:
+    static_ip: !secret wifi_static_ip
+    gateway: !secret wifi_gateway
+    subnet: !secret wifi_subnet
+    dns1: 1.1.1.1
+    dns2: 8.8.8.8
+
+  ap:
+    ssid: "Balik Yemleyici"
+    password: "12345678"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+# ========================================================
+# GLOBALS
+# ========================================================
+
+globals:
+
+  - id: son_yemleme
+    type: std::string
+    restore_value: yes
+    initial_value: '"Yok"'
+
+  - id: feeding_animation
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+    
+  - id: feeding_frame
+    type: int
+    restore_value: no
+    initial_value: '0'
+    
+  - id: ui_boot_screen
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+
+  - id: ota_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: ota_progress_percent
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: last_feed_minute
+    type: int
+    restore_value: no
+    initial_value: '-1'
+
+  - id: system_lock_ota
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+    
+# ========================================================
+# SAAT
+# ========================================================
+
+time:
+  - platform: sntp
+    id: saat_tarih
+    timezone: Europe/Istanbul
+
+    servers:
+      - time.google.com
+      - time.cloudflare.com
+      - 0.tr.pool.ntp.org
+
+    on_time_sync:
+      then:
+        - logger.log: Saat Senkronize Edildi.
+    
+# ========================================================
+# OUTPUT
+# ========================================================
+
+output:
+
+  - platform: ledc
+    pin: GPIO16
+    id: pwm_output
+    frequency: 50 Hz
+
+  - platform: gpio
+    pin: GPIO4
+    id: flash_led
+
+# ========================================================
+# SERVO
+# ========================================================
+
+servo:
+  - id: feeder_servo
+    output: pwm_output
+    min_level: 0.025
+    idle_level: 0.075
+    max_level: 0.13
+
+# ========================================================
+# AYARLAR
+# ========================================================
+
+number:
+
+  - platform: template
+    name: "Servo Açısı"
+    id: servo_acisi
+    optimistic: true
+    min_value: -100
+    max_value: 100
+    step: 1
+    initial_value: 0
+    restore_value: true
+
+switch:
+
+  - platform: template
+    name: "Yemleme 1 Aktif"
+    id: yemleme_1_aktif
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+  - platform: template
+    name: "Yemleme 2 Aktif"
+    id: yemleme_2_aktif
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+  - platform: template
+    name: "Yemleme 3 Aktif"
+    id: yemleme_3_aktif
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
+datetime:
+
+  - platform: template
+    id: yemleme_sira_1
+    name: "Yemleme 1"
+
+    type: time
+    optimistic: true
+
+    restore_value: true
+
+    initial_value: "08:00:00"
+
+  - platform: template
+    id: yemleme_sira_2
+    name: "Yemleme 2"
+
+    type: time
+    optimistic: true
+    restore_value: true
+
+    initial_value: "19:00:00"
+
+  - platform: template
+    id: yemleme_sira_3
+    name: "Yemleme 3"
+
+    type: time
+    optimistic: true
+    restore_value: true
+
+    initial_value: "22:00:00"
+    
+button:
+
+  - platform: template
+    name: "Manuel Yemleme"
+    icon: "mdi:fish"
+
+    on_press:
+      then:
+        - script.execute: yemleme_script
+
+# ========================================================
+# SCRIPT
+# ========================================================
+
+script:
+
+  - id: yemleme_script
+    mode: single
+
+    then:
+      - lambda: |-
+          id(feeding_frame) = 0;
+          id(feeding_animation) = true;
+
+      - output.turn_on: flash_led
+
+      - servo.write:
+          id: feeder_servo
+          level: -100%
+
+      - delay: 300ms
+
+      - servo.write:
+          id: feeder_servo
+          level: !lambda "return id(servo_acisi).state / 100.0;"
+
+      - delay: 1000ms
+
+      - servo.write:
+          id: feeder_servo
+          level: -100%
+
+      - delay: 500ms
+
+      - servo.write:
+          id: feeder_servo
+          level: -70%
+
+      - delay: 150ms
+
+      - servo.write:
+          id: feeder_servo
+          level: -100%
+
+      - delay: 150ms
+
+      - servo.detach: feeder_servo
+
+      - output.turn_off: flash_led
+
+      - lambda: |-
+
+          id(feeding_animation) = false;
+          id(feeding_frame) = 0;
+          auto now = id(saat_tarih).now();
+
+          if (!now.is_valid())
+            return;
+
+          char buffer[32];
+
+          sprintf(
+            buffer,
+            "%02d.%02d %02d:%02d",
+            now.day_of_month,
+            now.month,
+            now.hour,
+            now.minute
+          );
+
+          id(son_yemleme) = buffer;
+
+# ========================================================
+# I2C
+# ========================================================
+
+i2c:
+  sda: GPIO13
+  scl: GPIO14
+  scan: true
+
+# ========================================================
+# TEXT SENSORS
+# ========================================================
+
+text_sensor:
+
+  - platform: wifi_info
+    ip_address:
+      name: "IP Adresi"
+      id: wifi_ip
+
+  - platform: uptime
+    id: uptime_sensor
+    name: Uptime
+    format:
+      separator: " "
+      days: " Gün"
+      hours: " Saat"
+      minutes: " Dakika"
+      seconds: " saniye"
+
+  - platform: template
+    name: "Son Yemleme"
+    id: son_yemleme_sensor
+    icon: "mdi:clock-check"
+
+    lambda: |-
+      return id(son_yemleme);
+
+    update_interval: 30s
+
+  - platform: template
+    name: Sonraki Yemleme
+    id: sonraki_yemleme
+    icon: "mdi:clock-outline"
+    update_interval: 30s
+
+    lambda: |-
+      auto now = id(saat_tarih).now();
+
+      if (!now.is_valid())
+        return std::string("Senkron");
+
+      int current_minute = now.hour * 60 + now.minute;
+
+      int feed1 = -1;
+      int feed2 = -1;
+      int feed3 = -1;
+
+      if (id(yemleme_1_aktif).state)
+        feed1 = id(yemleme_sira_1).hour * 60 + id(yemleme_sira_1).minute;
+
+      if (id(yemleme_2_aktif).state)
+        feed2 = id(yemleme_sira_2).hour * 60 + id(yemleme_sira_2).minute;
+
+      if (id(yemleme_3_aktif).state)
+        feed3 = id(yemleme_sira_3).hour * 60 + id(yemleme_sira_3).minute;
+
+      int next_feed = -1;
+
+      if (feed1 > current_minute)
+        next_feed = feed1;
+
+      if (feed2 > current_minute && (next_feed == -1 || feed2 < next_feed))
+        next_feed = feed2;
+
+      if (feed3 > current_minute && (next_feed == -1 || feed3 < next_feed))
+        next_feed = feed3;
+
+      if (next_feed == -1)
+      {
+        if (feed1 != -1)
+          next_feed = feed1;
+
+        if (feed2 != -1 && (next_feed == -1 || feed2 < next_feed))
+          next_feed = feed2;
+
+        if (feed3 != -1 && (next_feed == -1 || feed3 < next_feed))
+          next_feed = feed3;
+      }
+
+      if (next_feed == -1)
+        return std::string("Yok");
+
+      int next_hour = next_feed / 60;
+      int next_minute = next_feed % 60;
+
+      char buffer[16];
+      sprintf(buffer, "%02d:%02d", next_hour, next_minute);
+
+      return std::string(buffer);
+      
+  - platform: template
+    name: "Yemleme Döngüsü"
+    id: yemleme_dongusu
+
+    lambda: |-
+
+      int total = 0;
+
+      if (id(yemleme_1_aktif).state)
+        total++;
+
+      if (id(yemleme_2_aktif).state)
+        total++;
+
+      if (id(yemleme_3_aktif).state)
+        total++;
+
+      char buffer[16];
+
+      sprintf(buffer, "Günde %d Kez", total);
+
+      return {buffer};
+
+    update_interval: 10s
+      
+sensor:
+  - platform: uptime
+    id: uptime_seconds
+  - platform: wifi_signal
+    name: "WiFi Sinyal dB"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+
+  - platform: copy
+    source_id: wifi_signal_db
+    id: wifi_signal_percent
+    name: "WiFi Sinyal Yüzde"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: "diagnostic"
+    device_class: ""
+
+# sensor:
+#
+#   # Su sıcaklığı
+#   - platform: dallas_temp
+#     name: "Su Sicakligi"
+#     id: water_temp
+
+# ========================================================
+# INTERVAL
+# ========================================================
+
+interval:
+  - interval: 10s
+
+    then:
+      - lambda: |-
+
+          auto now = id(saat_tarih).now();
+
+          if (!now.is_valid())
+            return;
+
+          int current_minute =
+            now.hour * 60 + now.minute;
+
+          if (current_minute == id(last_feed_minute))
+            return;
+
+          bool trigger = false;
+
+          if (
+            id(yemleme_1_aktif).state &&
+            now.hour == id(yemleme_sira_1).hour &&
+            now.minute == id(yemleme_sira_1).minute
+          )
+          {
+            trigger = true;
+          }
+
+          if (
+            id(yemleme_2_aktif).state &&
+            now.hour == id(yemleme_sira_2).hour &&
+            now.minute == id(yemleme_sira_2).minute
+          )
+          {
+            trigger = true;
+          }
+
+          if (
+            id(yemleme_3_aktif).state &&
+            now.hour == id(yemleme_sira_3).hour &&
+            now.minute == id(yemleme_sira_3).minute
+          )
+          {
+            trigger = true;
+          }
+
+          if (trigger)
+          {
+            id(last_feed_minute) =
+              current_minute;
+
+            id(yemleme_script).execute();
+          }
+            
+  - interval: 500ms
+    then:
+      - lambda: |-
+          if (id(system_lock_ota))
+          {
+            id(ekranim).show_page(id(ota_page));
+            id(ekranim).update();
+            return;
+          }
+
+          if (id(ui_boot_screen))
+          {
+            id(ekranim).show_page(id(boot_page));
+          }
+          else if (id(ota_in_progress))
+          {
+            id(ekranim).show_page(id(ota_page));
+          }
+          else if (id(feeding_animation))
+          {
+            id(ekranim).show_page(id(feeding_page));
+          }
+          else
+          {
+            id(ekranim).show_page(id(main_page));
+          }
+
+          id(ekranim).update();
+
+# ========================================================
+# FONT
+# ========================================================
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_kucuk
+    size: 11
+    glyphs:
+      - " "
+      - "%"
+      - "("
+      - ")"
+      - "*"
+      - "["
+      - "]"
+      - "!"
+      - "+"
+      - "-"
+      - "<"
+      - ">"
+      - "."
+      - "/"
+      - ":"
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+      - "9"
+
+      - "A"
+      - "B"
+      - "C"
+      - "Ç"
+      - "D"
+      - "E"
+      - "F"
+      - "G"
+      - "Ğ"
+      - "H"
+      - "I"
+      - "İ"
+      - "J"
+      - "K"
+      - "L"
+      - "M"
+      - "N"
+      - "O"
+      - "Ö"
+      - "P"
+      - "R"
+      - "S"
+      - "Ş"
+      - "T"
+      - "U"
+      - "Ü"
+      - "V"
+      - "W"
+      - "Y"
+      - "Z"
+
+      - "a"
+      - "b"
+      - "c"
+      - "ç"
+      - "d"
+      - "e"
+      - "f"
+      - "g"
+      - "ğ"
+      - "h"
+      - "ı"
+      - "i"
+      - "j"
+      - "k"
+      - "l"
+      - "m"
+      - "n"
+      - "o"
+      - "ö"
+      - "p"
+      - "r"
+      - "s"
+      - "ş"
+      - "t"
+      - "u"
+      - "ü"
+      - "v"
+      - "w"
+      - "y"
+      - "z"
+
+  - file: "gfonts://Roboto"
+    id: font_orta
+    size: 15
+    glyphs:
+      - " "
+      - "%"
+      - "("
+      - ")"
+      - "*"
+      - "["
+      - "]"
+      - "!"
+      - "+"
+      - "-"
+      - "<"
+      - ">"
+      - "."
+      - "/"
+      - ":"
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+      - "9"
+
+      - "A"
+      - "B"
+      - "C"
+      - "Ç"
+      - "D"
+      - "E"
+      - "F"
+      - "G"
+      - "Ğ"
+      - "H"
+      - "I"
+      - "İ"
+      - "J"
+      - "K"
+      - "L"
+      - "M"
+      - "N"
+      - "O"
+      - "Ö"
+      - "P"
+      - "R"
+      - "S"
+      - "Ş"
+      - "T"
+      - "U"
+      - "Ü"
+      - "V"
+      - "W"
+      - "Y"
+      - "Z"
+
+      - "a"
+      - "b"
+      - "c"
+      - "ç"
+      - "d"
+      - "e"
+      - "f"
+      - "g"
+      - "ğ"
+      - "h"
+      - "ı"
+      - "i"
+      - "j"
+      - "k"
+      - "l"
+      - "m"
+      - "n"
+      - "o"
+      - "ö"
+      - "p"
+      - "r"
+      - "s"
+      - "ş"
+      - "t"
+      - "u"
+      - "ü"
+      - "v"
+      - "w"
+      - "y"
+      - "z"
+
+  - file: "gfonts://Roboto"
+    id: font_buyuk
+    size: 26
+    glyphs:
+      - ":"
+      - "."
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+      - "9"
+
+# ========================================================
+# OLED
+# ========================================================
+
+display:
+  - platform: ssd1306_i2c
+    model: SSD1306_128X64
+    address: 0x3C
+    id: ekranim
+    update_interval: 500ms
+    pages:
+
+      - id: boot_page
+        lambda: |-
+          it.fill(COLOR_OFF);
+
+          static bool init = false;
+          static int frame = 0;
+      
+          if (!init)
+          {
+            frame = 0;
+            init = true;
+          }
+      
+          frame++;
+
+          it.printf(114, 24, id(font_orta), TextAlign::RIGHT, "Orçun KUTLU");
+          it.printf(14, 4, id(font_orta), "Yemleyici by");
+
+          const int bar_width = 80;
+          const int bar_x = 24;
+          const int bar_y = 54;
+      
+          it.rectangle(
+            bar_x,
+            bar_y,
+            bar_width,
+            6
+          );
+      
+          int w = frame % (bar_width + 10);
+      
+          if (w > bar_width)
+            w = bar_width;
+      
+          it.filled_rectangle(
+            bar_x + 2,
+            bar_y + 2,
+            w - 2,
+            2
+          );
+
+      - id: ota_page
+        lambda: |-
+
+          it.fill(COLOR_OFF);
+
+          it.printf(
+            4,
+            20,
+            id(font_orta),
+            "GÜNCELLENİYOR"
+          );
+
+          it.rectangle(
+            14,
+            44,
+            100,
+            10
+          );
+
+          int progress =
+            (id(ota_progress_percent) * 96) / 100;
+
+          // Taşma koruması
+          if (progress > 96)
+            progress = 96;
+
+          if (progress < 0)
+            progress = 0;
+
+          it.filled_rectangle(
+            16,
+            46,
+            progress,
+            6
+          );
+            
+      - id: feeding_page
+        lambda: |-
+
+          it.fill(COLOR_OFF);
+
+          if (id(feeding_frame) < 96)
+            id(feeding_frame) += 8;
+
+          if (id(feeding_frame) > 96)
+            id(feeding_frame) = 96;
+
+          it.printf(
+            64,
+            18,
+            id(font_orta),
+            TextAlign::TOP_CENTER,
+            "YEM VERİLİYOR"
+          );
+
+          it.rectangle(
+            14,
+            42,
+            100,
+            10
+          );
+
+          it.filled_rectangle(
+            16,
+            44,
+            id(feeding_frame),
+            6
+          );
+
+      - id: main_page
+        lambda: |-
+
+          it.fill(COLOR_OFF);
+
+          int wifi_x = 2;
+
+          if (id(wifi_durum).is_connected())
+          {
+            it.filled_circle(wifi_x + 3, 6, 1);
+
+            it.draw_pixel_at(
+              wifi_x + 3,
+              10
+            );
+
+            it.line(
+              wifi_x + 2,
+              8,
+              wifi_x + 4,
+              8
+            );
+
+            it.line(
+              wifi_x + 1,
+              6,
+              wifi_x + 5,
+              6
+            );
+
+            it.line(
+              wifi_x + 0,
+              4,
+              wifi_x + 6,
+              4
+            );
+
+            int pct =
+              (int)id(wifi_signal_percent).state;
+
+            int bar_x = 14;
+
+            if (pct > 80)
+            {
+              it.filled_rectangle(bar_x, 10, 2, 2);
+              it.filled_rectangle(bar_x + 4, 8, 2, 4);
+              it.filled_rectangle(bar_x + 8, 6, 2, 6);
+              it.filled_rectangle(bar_x + 12, 4, 2, 8);
+            }
+            else if (pct > 60)
+            {
+              it.filled_rectangle(bar_x, 10, 2, 2);
+              it.filled_rectangle(bar_x + 4, 8, 2, 4);
+              it.filled_rectangle(bar_x + 8, 6, 2, 6);
+            }
+            else if (pct > 40)
+            {
+              it.filled_rectangle(bar_x, 10, 2, 2);
+              it.filled_rectangle(bar_x + 4, 8, 2, 4);
+            }
+            else if (pct > 20)
+            {
+              it.filled_rectangle(bar_x, 10, 2, 2);
+            }
+          }
+          else
+          {
+            it.line(2, 2, 12, 12);
+            it.line(12, 2, 2, 12);
+          }
+
+          it.line(
+            0,
+            15,
+            128,
+            15
+          );
+
+          it.printf(
+            126,
+            2,
+            id(font_kucuk),
+            TextAlign::TOP_RIGHT,
+            "%s",
+            id(wifi_ip).state.c_str()
+          );
+
+          it.printf(
+            4,
+            20,
+            id(font_kucuk),
+            "Son Yem"
+          );
+
+          it.printf(
+            124,
+            20,
+            id(font_kucuk),
+            TextAlign::TOP_RIGHT,
+            "%s",
+            id(son_yemleme).c_str()
+          );
+
+          it.printf(
+            4,
+            33,
+            id(font_kucuk),
+            "Sonraki Yem"
+          );
+
+          it.printf(
+            124,
+            33,
+            id(font_kucuk),
+            TextAlign::TOP_RIGHT,
+            "%s",
+            id(sonraki_yemleme).state.c_str()
+          );
+
+          it.printf(
+            4,
+            46,
+            id(font_kucuk),
+            "Döngü"
+          );
+
+          it.printf(
+            124,
+            46,
+            id(font_kucuk),
+            TextAlign::TOP_RIGHT,
+            "%s",
+            id(yemleme_dongusu).state.c_str()
+          );

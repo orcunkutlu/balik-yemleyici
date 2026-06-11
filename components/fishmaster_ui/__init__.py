@@ -1,0 +1,1 @@
+"""FishMaster UI External Component."""

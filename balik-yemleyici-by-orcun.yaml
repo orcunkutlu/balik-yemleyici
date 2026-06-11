@@ -23,8 +23,13 @@ psram:
   speed: 80MHz
 
 logger:
-  level: WARN
+  level: DEBUG
   baud_rate: 115200
+  logs:
+    ds3231: DEBUG
+    vl53l0x: DEBUG
+    dallas.sensor: DEBUG
+    i2c: DEBUG
 
 api:
   encryption:

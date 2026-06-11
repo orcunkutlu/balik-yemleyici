@@ -1,0 +1,761 @@
+# Board: AI Thinker ESP32-CAM
+# ========================================================
+# BALIK YEMLEYICI
+# ========================================================
+# Özellikler:
+#
+# ✅ Sabah 07:30 otomatik yemleme
+# ✅ Akşam 19:30 otomatik yemleme
+# ✅ Manuel yemleme butonu
+# ✅ Web panel
+# ✅ Servo açı ayarı
+# ✅ Flash LED kontrolü
+# ✅ Çift yemleme koruması
+# ✅ Servo detach (ısınma önleme)
+# ✅ OTA update
+#
+# Şimdilik pasif bırakılanlar:
+# ⏸ DS18B20 sıcaklık sensörü
+# ⏸ HC-SR04 yem seviyesi sensörü
+#
+# Yarın kolayca aktif edebilmek için
+# yorum satırı halinde bırakıldı.
+# ========================================================
+
+esphome:
+  name: balik-yemleyici
+  friendly_name: Balik Yemleyici
+
+
+esp32:
+  board: esp32cam
+  framework:
+    type: esp-idf
+    advanced:
+      sram1_as_iram: true
+      minimum_chip_revision: 3.1
+
+psram:
+  mode: quad
+  speed: 80MHz
+
+logger:
+
+api:
+  encryption:
+    key: "9kKnZ/GA8GOJkSP13pSMAyJK8xtURfB8yPVRTIeUdHk="
+
+ota:
+  - platform: esphome
+
+wifi:
+  id: wifi_durum
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  ap:
+    ssid: "Balik Yemleyici WiFi"
+    password: "12345678"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+# --------------------------------------------------------
+# SAAT
+# --------------------------------------------------------
+
+time:
+  - platform: sntp
+    id: saat_tarih
+    timezone: Europe/Istanbul
+
+    on_time:
+
+      # --------------------------------------------------
+      # SABAH YEMLEME
+      # 07:30
+      # --------------------------------------------------
+
+      - seconds: 0
+        minutes: 30
+        hours: 7
+
+        then:
+          - button.press: yemleme_otomatik
+
+      # --------------------------------------------------
+      # AKŞAM YEMLEME
+      # 19:30
+      # --------------------------------------------------
+
+      - seconds: 0
+        minutes: 30
+        hours: 19
+
+        then:
+          - button.press: yemleme_otomatik
+
+# --------------------------------------------------------
+# GLOBAL DEĞİŞKENLER
+# --------------------------------------------------------
+
+globals:
+  # Son yemleme saati
+  - id: son_yemleme
+    type: std::string
+    restore_value: no
+    initial_value: '"Yok"'
+
+  # Çift yemlemeyi engellemek için
+  - id: son_yemleme_gunu
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: son_yemleme_saati
+    type: int
+    restore_value: no
+    initial_value: '-1'
+
+  - id: feeding_animation
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: ui_frame
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+# --------------------------------------------------------
+# ÇIKIŞLAR
+# --------------------------------------------------------
+
+output:
+  # ------------------------------------------------------
+  # SERVO PWM
+  # ------------------------------------------------------
+
+  - platform: ledc
+    pin: GPIO16
+    id: pwm_output
+    frequency: 50 Hz
+
+  # ------------------------------------------------------
+  # ESP32-CAM FLASH LED
+  # ------------------------------------------------------
+
+  - platform: gpio
+    pin: GPIO4
+    id: flash_led
+
+# --------------------------------------------------------
+# SERVO
+# --------------------------------------------------------
+
+servo:
+  - id: feeder_servo
+    output: pwm_output
+
+# --------------------------------------------------------
+# SERVO AÇI AYARI
+# WEB PANELDEN DEĞİŞTİRİLEBİLİR
+# --------------------------------------------------------
+
+number:
+  - platform: template
+    name: "Servo Açısı"
+    id: servo_acisi
+    optimistic: true
+    min_value: -100
+    max_value: 100
+    step: 1
+    initial_value: 30
+    restore_value: true
+    icon: "mdi:angle-obtuse"
+# ========================================================
+# YEMLEME BUTONLARI
+# ========================================================
+
+button:
+
+  # ------------------------------------------------------
+  # OTOMATİK YEMLEME
+  # ------------------------------------------------------
+
+  - platform: template
+    id: yemleme_otomatik
+    internal: true
+
+    on_press:
+      then:
+
+        # ----------------------------------------------
+        # Çift yemleme koruması
+        # ----------------------------------------------
+
+        - lambda: |-
+            auto now = id(saat_tarih).now();
+
+            if (
+              id(son_yemleme_gunu) == now.day_of_year &&
+              id(son_yemleme_saati) == now.hour
+            ) {
+              ESP_LOGD("feed", "Bu saatte zaten yemleme yapıldı.");
+              return;
+            }
+
+            id(son_yemleme_gunu) = now.day_of_year;
+            id(son_yemleme_saati) = now.hour;
+            id(feeding_animation) = true;
+
+        # ----------------------------------------------
+        # Flash LED Aç
+        # ----------------------------------------------
+
+        - output.turn_on: flash_led
+
+        # ----------------------------------------------
+        # Servo dön
+        # ----------------------------------------------
+
+        - servo.write:
+            id: feeder_servo
+            level: !lambda "return id(servo_acisi).state / 100.0;"
+
+        - delay: 1200ms
+
+        # ----------------------------------------------
+        # Servo başlangıç pozisyonu
+        # ----------------------------------------------
+
+        - servo.write:
+            id: feeder_servo
+            level: 30%
+
+        - delay: 500ms
+
+        # ----------------------------------------------
+        # Servo enerjisini kes
+        # ----------------------------------------------
+
+        - servo.detach: feeder_servo
+
+        # ----------------------------------------------
+        # Flash LED Kapat
+        # ----------------------------------------------
+
+        - output.turn_off: flash_led
+        - lambda: |-
+            id(feeding_animation) = false;
+
+        # ----------------------------------------------
+        # Son yemleme saatini kaydet
+        # ----------------------------------------------
+
+        - lambda: |-
+            auto now = id(saat_tarih).now();
+
+            char buffer[10];
+
+            sprintf(buffer,
+                    "%02d:%02d",
+                    now.hour,
+                    now.minute);
+
+            id(son_yemleme) = buffer;
+
+  # ------------------------------------------------------
+  # MANUEL YEMLEME BUTONU
+  # ------------------------------------------------------
+
+  - platform: template
+    name: "Yemleme Yap"
+
+    on_press:
+      then:
+        - button.press: yemleme_otomatik
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Adresi"
+      id: wifi_ip
+
+#  - platform: uptime
+#    id: uptime_sensor
+#    name: Uptime
+#    format:
+#      separator: " "
+#      days: "G"
+#      hours: "S"
+#      minutes: "D"
+#      seconds: "s"
+#
+# --------------------------------------------------------
+# I2C OLED
+# --------------------------------------------------------
+
+i2c:
+  sda: GPIO15
+  scl: GPIO14
+  scan: true
+
+# --------------------------------------------------------
+# FONTLAR
+# --------------------------------------------------------
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_kucuk
+    size: 10
+    glyphs:
+      - " "
+      - "%"
+      - "("
+      - ")"
+      - "*"
+      - "+"
+      - "-"
+      - "."
+      - "/"
+      - ":"
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+      - "9"
+
+      - "A"
+      - "B"
+      - "C"
+      - "Ç"
+      - "D"
+      - "E"
+      - "F"
+      - "G"
+      - "Ğ"
+      - "H"
+      - "I"
+      - "İ"
+      - "J"
+      - "K"
+      - "L"
+      - "M"
+      - "N"
+      - "O"
+      - "Ö"
+      - "P"
+      - "R"
+      - "S"
+      - "Ş"
+      - "T"
+      - "U"
+      - "Ü"
+      - "V"
+      - "Y"
+      - "Z"
+
+      - "a"
+      - "b"
+      - "c"
+      - "ç"
+      - "d"
+      - "e"
+      - "f"
+      - "g"
+      - "ğ"
+      - "h"
+      - "ı"
+      - "i"
+      - "j"
+      - "k"
+      - "l"
+      - "m"
+      - "n"
+      - "o"
+      - "ö"
+      - "p"
+      - "r"
+      - "s"
+      - "ş"
+      - "t"
+      - "u"
+      - "ü"
+      - "v"
+      - "y"
+      - "z"
+
+  - file: "gfonts://Roboto"
+    id: font_orta
+    size: 14
+    glyphs:
+      - " "
+      - "%"
+      - "("
+      - ")"
+      - "*"
+      - "+"
+      - "-"
+      - "."
+      - "/"
+      - ":"
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+      - "9"
+
+      - "A"
+      - "B"
+      - "C"
+      - "Ç"
+      - "D"
+      - "E"
+      - "F"
+      - "G"
+      - "Ğ"
+      - "H"
+      - "I"
+      - "İ"
+      - "J"
+      - "K"
+      - "L"
+      - "M"
+      - "N"
+      - "O"
+      - "Ö"
+      - "P"
+      - "R"
+      - "S"
+      - "Ş"
+      - "T"
+      - "U"
+      - "Ü"
+      - "V"
+      - "Y"
+      - "Z"
+
+      - "a"
+      - "b"
+      - "c"
+      - "ç"
+      - "d"
+      - "e"
+      - "f"
+      - "g"
+      - "ğ"
+      - "h"
+      - "ı"
+      - "i"
+      - "j"
+      - "k"
+      - "l"
+      - "m"
+      - "n"
+      - "o"
+      - "ö"
+      - "p"
+      - "r"
+      - "s"
+      - "ş"
+      - "t"
+      - "u"
+      - "ü"
+      - "v"
+      - "y"
+      - "z"
+
+  - file: "gfonts://Roboto"
+    id: font_buyuk
+    size: 24
+    glyphs:
+      - ":"
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+      - "9"
+
+# --------------------------------------------------------
+# UPTIME
+# --------------------------------------------------------
+
+sensor:
+  - platform: uptime
+    name: "Uptime"
+    id: uptime_sensor
+
+binary_sensor:
+  - platform: template
+    name: WiFi Durum
+    id: wifi_sensor_durum
+    icon: "mdi:wifi"
+    device_class: connectivity
+    lambda: |-
+     return id(wifi_durum).is_connected();
+
+# --------------------------------------------------------
+# DS18B20
+# --------------------------------------------------------
+
+# one_wire:
+#   - platform: gpio
+#     pin: GPIO13
+
+# --------------------------------------------------------
+# SENSÖRLER
+# --------------------------------------------------------
+
+# sensor:
+#
+#   # Su sıcaklığı
+#   - platform: dallas_temp
+#     name: "Su Sicakligi"
+#     id: water_temp
+#
+#   # Ultrasonic yem seviyesi
+#   - platform: ultrasonic
+#     trigger_pin: GPIO14
+#     echo_pin: GPIO15
+#     name: "Yem Mesafesi"
+#     id: food_distance
+#     update_interval: 10s
+#
+#   # Yem seviyesi yüzdesi
+#   - platform: template
+#     name: "Yem Seviyesi"
+#     id: food_level
+#     unit_of_measurement: "%"
+#
+#     lambda: |-
+#       float distance = id(food_distance).state * 100.0;
+#
+#       float percent =
+#         (10.0 - distance) / 7.0 * 100.0;
+#
+#       if (percent > 100)
+#         percent = 100;
+#
+#       if (percent < 0)
+#         percent = 0;
+#
+#       return percent;
+
+# --------------------------------------------------------
+# OLED DISPLAY
+# --------------------------------------------------------
+
+display:
+  - platform: ssd1306_i2c
+    model: SSD1306_128X64
+    update_interval: 180ms
+    address: 0x3C
+
+    lambda: |-
+
+      auto now = id(saat_tarih).now();
+
+      if (id(feeding_animation))
+      {
+        // DIS CERCEVE
+        it.rectangle(0, 0, 128, 64);
+
+        // BASLIK
+        it.printf(
+          18,
+          4,
+          id(font_orta),
+          "YEMLENİYOR"
+        );
+
+        // ANIMASYON CIZGISI
+        int bar =
+          (millis() / 120) % 90;
+
+        // PROGRESS CERCEVE
+        it.rectangle(
+          18,
+          28,
+          92,
+          12
+        );
+
+        // DOLAN BAR
+        it.filled_rectangle(
+          20,
+          30,
+          bar,
+          8
+        );
+
+        // BALIK ANIMASYONU
+        int fish_x =
+          (millis() / 60) % 128;
+
+        it.printf(
+          fish_x - 20,
+          48,
+          id(font_kucuk),
+          "><(((*>"
+        );
+      }
+
+      // ==================================================
+      // STATUS EKRANI
+      // ==================================================
+
+      else
+      {
+        // DIS CERCEVE
+        it.rectangle(0, 0, 128, 64);
+
+        // UST CIZGI
+        it.line(0, 16, 128, 16);
+
+        // SAAT
+        it.strftime(
+          4,
+          -2,
+          id(font_buyuk),
+          "%H:%M",
+          now
+        );
+
+        // BASLIK
+        it.printf(
+          78,
+          2,
+          id(font_kucuk),
+          "BALIK"
+        );
+
+        it.printf(
+          78,
+          11,
+          id(font_kucuk),
+          "YEMLEYİCİ"
+        );
+
+        // ORTA AYIRICI
+        it.line(0, 46, 128, 46);
+
+        // SON YEMLEME
+        it.printf(
+          4,
+          22,
+          id(font_kucuk),
+          "SON YEMLEME"
+        );
+
+        it.printf(
+          90,
+          22,
+          id(font_kucuk),
+          "%s",
+          id(son_yemleme).c_str()
+        );
+
+        // UPTIME
+        int uptime =
+          (int) id(uptime_sensor).state;
+
+        int gun =
+          uptime / 86400;
+
+        int saat =
+          (uptime % 86400) / 3600;
+
+        int dakika =
+          (uptime % 3600) / 60;
+
+        char uptime_buffer[32];
+
+        sprintf(
+          uptime_buffer,
+          "%dg %ds %ddk",
+          gun,
+          saat,
+          dakika
+        );
+
+        it.printf(
+          4,
+          34,
+          id(font_kucuk),
+          "UPTIME"
+        );
+
+        it.printf(
+          64,
+          34,
+          id(font_kucuk),
+          "%s",
+          uptime_buffer
+        );
+
+        if (id(wifi_sensor_durum).state) {
+          it.printf(4, 48, id(font_kucuk), "WiFi Bagli: %s", id(wifi_ip).state.c_str());
+        } else {
+          it.printf(4, 48, id(font_kucuk), "WiFi X");
+        }
+        it.printf(
+          4,
+          48,
+          id(font_kucuk),
+          "%s",
+          id(wifi_ip).state.c_str()
+        );
+
+        // MINI AKVARYUM CIZGISI
+        for (int i = 0; i < 128; i += 4)
+        {
+          it.draw_pixel_at(i, 63);
+        }
+
+        // KUCUK HAREKETLI BALIK
+        int fish_x =
+          (millis() / 140) % 140;
+
+        it.printf(
+          fish_x - 20,
+          54,
+          id(font_kucuk),
+          "><>"
+        );
+      }
+
+#       // SICAKLIK
+#       it.printf(
+#         4,
+#         50,
+#         id(font_kucuk),
+#         "SIC: %.1fC",
+#         id(water_temp).state
+#       );
+
+#       // YEM SEVIYESI
+#       it.printf(
+#         74,
+#         50,
+#         id(font_kucuk),
+#         "YEM: %.0f%%",
+#         id(food_level).state
+#       );

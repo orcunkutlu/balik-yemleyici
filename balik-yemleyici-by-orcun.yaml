@@ -128,9 +128,7 @@ i2c:
     scan: true
     id: saat_tutucu
     
-# ============================================================
-# SERVO ÇIKIŞI
-# ============================================================
+
 output:
   - platform: ledc
     id: pwm_output
@@ -143,1199 +141,6 @@ servo:
     min_level: 0.025
     idle_level: 0.075
     max_level: 0.13
-#####
-# LVGL
-#####
-lvgl:
-  id: lvgl_id
-  displays: ekranim
-  # ===== FISHMASTER RENK PALETI =====
-  theme:
-    
-    # Kart stili (tum widgetler icin temel)
-    obj:
-      bg_color: 0x1125      # Dark Navy Panel
-      bg_opa: COVER
-      border_width: 0
-      radius: 12
-      pad_all: 8
-      
-    # Label defaults
-    label:
-      text_font: font_kucuk
-      text_color: 0xFFFF
-    
-    # Butonlar (navbar icin)
-    button:
-      bg_color: 0x1125
-      bg_opa: COVER
-      border_width: 0
-      radius: 0
-      text_color: 0x7BFF      # Soft Blue
-      text_font: font_kucuk
-      pad_all: 0
-      pressed:
-        bg_color: 0x1A3A
-      checked:
-        text_color: 0xF1A6    # Coral Red (active tab)
-    
-    # Arc/Progress (sicaklik gostergesi icin)
-    arc:
-      bg_color: 0x1125
-      indicator:
-        bg_color: 0xF1A6      # Coral Red
-        bg_grad_color: 0xFE60  # Golden Yellow
-        bg_grad_dir: VER
-      knob:
-        bg_color: 0xFFFF
-        border_width: 2
-        border_color: 0xF1A6
-
-  # ===== STYLE DEFINITIONS =====
-  style_definitions:
-    # Header stili
-    - id: style_header
-      bg_color: 0x0A2A
-      bg_opa: COVER
-      border_width: 0
-      radius: 0
-      pad_all: 0
-      height: 34
-      width: 100%
-      text_color: 0xFFFF
-      text_font: font_orta
-
-    # Kart stili (sicaklik karti)
-    - id: style_card
-      bg_color: 0x1125
-      bg_opa: COVER
-      border_width: 0
-      radius: 16
-      pad_all: 12
-      shadow_color: 0x000000
-      shadow_opa: 30%
-      shadow_width: 8
-      shadow_spread: 2
-
-    # Kart ust accent cizgisi
-    - id: style_card_accent
-      bg_color: 0xF1A6        # Coral Red
-      bg_opa: COVER
-      border_width: 0
-      radius: 4
-      height: 6
-      width: 100%
-
-    # Sicaklik degeri (buyuk)
-    - id: style_temp_value
-      text_font: font_buyuk
-      text_color: 0xFFFF
-      text_align: CENTER
-
-    # Birim label (°C)
-    - id: style_temp_unit
-      text_font: font_orta
-      text_color: 0x7BFF
-      text_align: CENTER
-
-    # Alert strip - ALL OK
-    - id: style_alert_ok
-      bg_color: 0x1125
-      bg_opa: COVER
-      radius: 12
-      pad_all: 8
-      text_color: 0x2E9A      # Ocean Teal
-      text_font: font_orta
-
-    # Alert strip - WARNING
-    - id: style_alert_warn
-      bg_color: 0x1125
-      bg_opa: COVER
-      radius: 12
-      pad_all: 8
-      text_color: 0xF1A6      # Coral Red
-      text_font: font_kucuk
-
-    # Navbar stili
-    - id: style_navbar
-      bg_color: 0x1125
-      bg_opa: COVER
-      radius: 0
-      border_width: 0
-      height: 28
-      width: 100%
-      pad_all: 0
-
-    # Navbar active indicator
-    - id: style_nav_indicator
-      bg_color: 0xF1A6
-      height: 2
-      width: 60
-      radius: 1
-
-    # WiFi status
-    - id: style_wifi_online
-      text_color: 0x2E9A      # Ocean Teal
-      text_font: font_kucuk
-
-    - id: style_wifi_offline
-      text_color: 0xF1A6      # Coral Red
-      text_font: font_kucuk
-
-  # ===== SAYFALAR =====
-  pages:
-    # ========================================
-    # HOME PAGE
-    # ========================================
-    - id: page_home
-      widgets:
-        # Header
-        - obj:
-            styles: style_header
-            align: TOP_MID
-            widgets:
-              - label:
-                  text: "FISHMASTER"
-                  align: LEFT_MID
-                  x: 16
-                  y: 0
-
-        # WiFi Status (sag ust)
-        - obj:
-            x: 220
-            y: 4
-            width: 96
-            height: 28
-            bg_opa: TRANSP
-            border_width: 0
-            widgets:
-              - label:
-                  id: lbl_wifi_icon
-                  text: "\U000F05AA"  # mdi-wifi-off
-                  text_font: mdi_icons
-                  text_color: 0xF1A6
-                  align: RIGHT_MID
-                  x: -35
-              - label:
-                  id: lbl_wifi_text
-                  text: "LOCAL"
-                  styles: style_wifi_offline
-                  align: RIGHT_MID
-
-        # Sicaklik Karti (buyuk, ortali)
-        - obj:
-            styles: style_card
-            x: 60
-            y: 45
-            width: 200
-            height: 120
-            widgets:
-              # Ust accent cizgisi
-              - obj:
-                  styles: style_card_accent
-                  align: TOP_MID
-                  y: 0
-              
-              # Baslik
-              - label:
-                  text: "WATER TEMPERATURE"
-                  text_font: font_kucuk
-                  text_color: 0x7BFF
-                  align: TOP_MID
-                  y: 12
-
-              # Sicaklik degeri
-              - label:
-                  id: lbl_temp_value
-                  text: "--.-"
-                  styles: style_temp_value
-                  align: CENTER
-                  y: 8
-
-              # Birim
-              - label:
-                  text: "°C"
-                  styles: style_temp_unit
-                  align: BOTTOM_MID
-                  y: -8
-
-        # Balik Maskotu (sag alt)
-        - label:
-            text: "\U000F04F9"  # mdi-fish
-            text_font: mdi_icons
-            text_color: 0xF1A6
-            x: 250
-            y: 160
-
-        # Alert Strip
-        - obj:
-            id: alert_strip
-            styles: style_alert_ok
-            x: 20
-            y: 175
-            width: 280
-            height: 45
-            widgets:
-              - obj:
-                  styles: style_card_accent
-                  align: TOP_MID
-                  bg_color: 0x2E9A   # Teal for OK
-              
-              - label:
-                  text: "STATUS"
-                  text_font: font_kucuk
-                  text_color: 0x7BFF
-                  align: LEFT_MID
-                  x: 12
-
-              - label:
-                  id: lbl_alert_text
-                  text: "ALL OK"
-                  text_font: font_orta
-                  text_color: 0x2E9A
-                  align: CENTER
-
-              - label:
-                  text: "\U000F05E0"  # mdi-check-circle
-                  text_font: mdi_icons
-                  text_color: 0x2E9A
-                  align: RIGHT_MID
-                  x: -12
-
-    # ========================================
-    # CHART PAGE (Analytics)
-    # ========================================
-    - id: page_chart
-      hidden: true
-      widgets:
-        - obj:
-            styles: style_header
-            align: TOP_MID
-            widgets:
-              - label:
-                  text: "TEMP HISTORY"
-                  align: LEFT_MID
-                  x: 16
-
-        # Grafik alani placeholder
-        - obj:
-            styles: style_card
-            x: 20
-            y: 50
-            width: 280
-            height: 150
-            widgets:
-              - label:
-                  text: "30°C"
-                  text_font: font_kucuk
-                  text_color: 0x7BFF
-                  align: TOP_LEFT
-                  x: 8
-                  y: 8
-              
-              - label:
-                  text: "20°C"
-                  text_font: font_kucuk
-                  text_color: 0x7BFF
-                  align: BOTTOM_LEFT
-                  x: 8
-                  y: -8
-
-              - label:
-                  text: "Collecting data..."
-                  text_font: font_kucuk
-                  text_color: 0x7BFF
-                  align: CENTER
-
-    # ========================================
-    # LOG PAGE
-    # ========================================
-    - id: page_log
-      hidden: true
-      widgets:
-        - obj:
-            styles: style_header
-            align: TOP_MID
-            widgets:
-              - label:
-                  text: "EVENT LOG"
-                  align: LEFT_MID
-                  x: 16
-
-        - obj:
-            styles: style_card
-            x: 20
-            y: 50
-            width: 280
-            height: 32
-            widgets:
-              - label:
-                  text: "System booted"
-                  text_font: font_kucuk
-                  align: LEFT_MID
-                  x: 12
-
-        - obj:
-            styles: style_card
-            x: 20
-            y: 90
-            width: 280
-            height: 32
-            widgets:
-              - label:
-                  text: "WiFi connected"
-                  text_font: font_kucuk
-                  align: LEFT_MID
-                  x: 12
-
-        - obj:
-            styles: style_card
-            x: 20
-            y: 130
-            width: 280
-            height: 32
-            widgets:
-              - label:
-                  text: "Sensor ready"
-                  text_font: font_kucuk
-                  align: LEFT_MID
-                  x: 12
-
-    # ========================================
-    # SETTINGS PAGE
-    # ========================================
-    - id: page_set
-      hidden: true
-      widgets:
-        - obj:
-            styles: style_header
-            align: TOP_MID
-            widgets:
-              - label:
-                  text: "SETTINGS"
-                  align: LEFT_MID
-                  x: 16
-
-        - obj:
-            styles: style_card
-            x: 20
-            y: 50
-            width: 280
-            height: 32
-            widgets:
-              - label:
-                  text: "Alert Thresholds"
-                  text_font: font_kucuk
-                  align: LEFT_MID
-                  x: 12
-
-        - obj:
-            styles: style_card
-            x: 20
-            y: 90
-            width: 280
-            height: 32
-            widgets:
-              - label:
-                  text: "Display Brightness"
-                  text_font: font_kucuk
-                  align: LEFT_MID
-                  x: 12
-
-        - obj:
-            styles: style_card
-            x: 20
-            y: 130
-            width: 280
-            height: 32
-            widgets:
-              - label:
-                  text: "Data Interval"
-                  text_font: font_kucuk
-                  align: LEFT_MID
-                  x: 12
-
-  # ===== NAVBAR (Top Layer - Always on top) =====
-  
-####
-    - id: canvas_3
-      bg_color: 0x0B0F14
-      pad_all: 0
-      widgets:
-        - obj:
-            id: lv_obj_0
-            x: 0
-            y: 0
-            width: 240
-            height: 320
-            bg_color: 0x101010
-            pad_all: 0
-            widgets:
-              - label:
-                  id: boot_logo
-                  x: 107
-                  y: 80
-                  width: 24
-                  height: 24
-                  text: "\U000F04F9"
-                  text_font: mdi_icons
-              - label:
-                  id: lv_label_1
-                  x: 70
-                  y: 110
-                  text: "AKVARYUM OS"
-                  text_color: 0xFFFFFF
-                  text_font: montserrat_14
-              - spinner:
-                  id: lv_spinner_2
-                  x: 0
-                  y: 10
-                  width: 40
-                  height: 40
-                  align: CENTER
-                  spin_time: 1000ms
-                  arc_length: 60deg
-                  arc_color: 0x818CF8
-                  indicator:
-                    arc_color: 0xFFFFFF
-              - label:
-                  id: boot_durum
-                  x: 80
-                  y: 220
-                  text: "Başlatılıyor..."
-                  text_color: 0x80A40A
-                  text_font: montserrat_14
-  
-    - id: canvas_7
-      bg_color: 0x111827
-      pad_all: 0
-      widgets:
-        - obj:
-            id: grid_screen
-            x: 0
-            y: 0
-            width: 240
-            height: 320
-            bg_color: 0x08142D
-            border_width: 0
-            radius: 0
-            pad_all: 0
-            widgets:
-              - obj:
-                  id: hdr_shb_bar
-                  x: 4
-                  y: 4
-                  width: 232
-                  height: 36
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 0
-                  radius: 0
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: hdr_shb_title
-                        x: 14
-                        y: 8
-                        width: 140
-                        height: 20
-                        text: "Balık Yemleyici"
-                        text_color: 0xF1F5F9
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: montserrat_16
-                    - label:
-                        id: hdr_shb_batt
-                        x: 190
-                        y: 10
-                        width: 20
-                        height: 20
-                        text: "\uF241"
-                        text_font: montserrat_14
-                        text_align: CENTER
-                        text_color: 0x10B981
-                    - label:
-                        id: hdr_shb_wifi
-                        x: 210
-                        y: 10
-                        width: 20
-                        height: 20
-                        text: "\uF1EB"
-                        text_font: montserrat_14
-                        text_align: CENTER
-                        text_color: 0x10B981
-              - obj:
-                  id: ms1_ms_card
-                  x: 4
-                  y: 44
-                  width: 110
-                  height: 36
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0xF59E0B
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: ms1_ms_icon
-                        x: 9
-                        y: 10
-                        width: 16
-                        height: 16
-                        text: "\uF0E7"
-                        text_font: montserrat_14
-                        text_align: CENTER
-                        text_color: 0xF59E0B
-                    - label:
-                        id: ms1_ms_value
-                        x: 30
-                        y: 7
-                        width: 53
-                        height: 22
-                        text: "23.5"
-                        text_color: 0xF1F5F9
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: montserrat_18
-                    - label:
-                        id: ms1_ms_unit
-                        x: 80
-                        y: 11
-                        width: 20
-                        height: 14
-                        text: "°C"
-                        text_color: 0x8E9FB8
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: montserrat_10
-              - obj:
-                  id: ms2_ms_card
-                  x: 126
-                  y: 44
-                  width: 110
-                  height: 36
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0x06B6D4
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: ms2_ms_icon
-                        x: 9
-                        y: 10
-                        width: 16
-                        height: 16
-                        text: "\uF043"
-                        text_font: montserrat_14
-                        text_align: CENTER
-                        text_color: 0x06B6D4
-                    - label:
-                        id: ms2_ms_value
-                        x: 30
-                        y: 7
-                        width: 74
-                        height: 22
-                        text: "58"
-                        text_color: 0xF1F5F9
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: montserrat_18
-                    - label:
-                        id: ms2_ms_unit
-                        x: 80
-                        y: 11
-                        width: 28
-                        height: 14
-                        text: "%"
-                        text_color: 0x8E9FB8
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: montserrat_10
-              - obj:
-                  id: ic1_ic_card
-                  x: 4
-                  y: 84
-                  width: 110
-                  height: 84
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0x10B981
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: ic1_ic_icon
-                        x: 10
-                        y: 9
-                        width: 90
-                        height: 22
-                        text: "\uF241"
-                        text_font: montserrat_18
-                        text_align: CENTER
-                        text_color: 0x10B981
-                    - label:
-                        id: ic1_ic_value
-                        x: 10
-                        y: 33
-                        width: 90
-                        height: 22
-                        text: "87"
-                        text_color: 0xF1F5F9
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_18
-                    - label:
-                        id: ic1_ic_label
-                        x: 10
-                        y: 58
-                        width: 90
-                        height: 12
-                        text: "Battery"
-                        text_color: 0x8E9FB8
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_8
-                    - line:
-                        id: ic1_ic_accent
-                        x: 10
-                        y: 72
-                        width: 90
-                        height: 2
-                        points:
-                          - 0, 0
-                          - 124, 0
-                        line_color: 0x10B981
-                        line_rounded: true
-              - obj:
-                  id: ic2_ic_card
-                  x: 126
-                  y: 84
-                  width: 110
-                  height: 84
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0x8B5CF6
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: ic2_ic_icon
-                        x: 10
-                        y: 9
-                        width: 90
-                        height: 22
-                        text: "\uF013"
-                        text_font: montserrat_18
-                        text_align: CENTER
-                        text_color: 0x8B5CF6
-                    - label:
-                        id: ic2_ic_value
-                        x: 10
-                        y: 33
-                        width: 90
-                        height: 22
-                        text: "3d 14h"
-                        text_color: 0xF1F5F9
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_18
-                    - label:
-                        id: ic2_ic_label
-                        x: 10
-                        y: 58
-                        width: 90
-                        height: 12
-                        text: "Uptime"
-                        text_color: 0x8E9FB8
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_8
-                    - line:
-                        id: ic2_ic_accent
-                        x: 10
-                        y: 72
-                        width: 90
-                        height: 2
-                        points:
-                          - 0, 0
-                          - 124, 0
-                        line_color: 0x8B5CF6
-                        line_rounded: true
-              - obj:
-                  id: sw_rs1_card
-                  x: 4
-                  y: 172
-                  width: 110
-                  height: 56
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0x10B981
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: sw_rs1_lbl_icon
-                        x: 4
-                        y: 7
-                        width: 90
-                        height: 18
-                        text: "\uF011"
-                        text_font: montserrat_14
-                        text_align: CENTER
-                        text_color: 0x10B981
-                    - led:
-                        id: sw_rs1_led
-                        x: 45
-                        y: 7
-                        width: 27
-                        height: 27
-                        color: 0x10B981
-                        brightness: 70%
-                        border_width: 0
-                        radius: 50
-                        shadow_width: 12
-                        shadow_color: 0x10B981
-                    - label:
-                        id: sw_rs1_lbl_name
-                        x: 4
-                        y: 26
-                        width: 90
-                        height: 12
-                        text: "Living Room"
-                        text_color: 0x8E9FB8
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_8
-                    - switch:
-                        id: sw_rs1_sw
-                        x: 59
-                        y: 37
-                        width: 27
-                        height: 15
-                        bg_color: 0x0F1929
-                        radius: 11
-                        indicator:
-                          checked:
-                            bg_color: 0x10B981
-                        knob:
-                          bg_color: 0xFFFFFF
-                          radius: 100%
-              - obj:
-                  id: mb_mb1_card
-                  x: 126
-                  y: 172
-                  width: 110
-                  height: 56
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0x3B82F6
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: mb_mb1_lbl_value
-                        x: 6
-                        y: 6
-                        width: 90
-                        height: 14
-                        text: "-42 dBm"
-                        text_color: 0x3B82F6
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_10
-                    - label:
-                        id: mb_mb1_lbl_name
-                        x: 6
-                        y: 19
-                        width: 90
-                        height: 12
-                        text: "WiFi Signal"
-                        text_color: 0x8E9FB8
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_8
-                    - bar:
-                        id: mb_mb1_bar
-                        x: 6
-                        y: 39
-                        width: 90
-                        height: 4
-                        value: 78
-                        min_value: 0
-                        max_value: 100
-                        indicator:
-                          bg_color: 0x3B82F6
-                          radius: 2
-                        bg_color: 0x0F1929
-                        radius: 9999
-              - obj:
-                  id: dm_dm_card
-                  x: 4
-                  y: 232
-                  width: 232
-                  height: 84
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0xFBBF24
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - bar:
-                        id: dm_dm_bar_accent
-                        x: 10
-                        y: 10
-                        width: 4
-                        height: 64
-                        value: 100
-                        min_value: 0
-                        max_value: 100
-                        indicator:
-                          bg_color: 0xFBBF24
-                          radius: 3
-                        bg_color: 0x0F1929
-                        radius: 9999
-                    - label:
-                        id: dm_dm_lbl_room
-                        x: 20
-                        y: 12
-                        width: 162
-                        height: 20
-                        text: "Desk Lamp"
-                        text_color: 0xF1F5F9
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: montserrat_16
-                    - label:
-                        id: dm_dm_lbl_pct
-                        x: 141
-                        y: 7
-                        width: 80
-                        height: 28
-                        text: "65%"
-                        text_color: 0xFBBF24
-                        text_align: RIGHT
-                        long_mode: CLIP
-                        text_font: montserrat_24
-                    - label:
-                        id: dm_dm_lbl_sub
-                        x: 20
-                        y: 38
-                        width: 202
-                        height: 14
-                        text: "Brightness"
-                        text_color: 0x8E9FB8
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: montserrat_10
-                    - slider:
-                        id: dm_dm_slider
-                        x: 20
-                        y: 58
-                        width: 204
-                        height: 16
-                        value: 38
-                        min_value: 0
-                        max_value: 100
-                        bg_color: 0x0F1929
-                        border_width: 0
-                        radius: 9999
-                        bg_opa: 100%
-                        knob:
-                          bg_color: 0xFFFFFF
-                          border_width: 0
-                          radius: 50
-                          pad_all: 0
-                        indicator:
-                          bg_color: 0xFBBF24
-                          bg_opa: 80%
-                          radius: 8
-                        animated: true
-
-script:
-
-  - id: yemleme_script
-    mode: restart
-
-    then:
-
-      - lambda: |-
-          id(feeding_now) = true;
-
-      - light.turn_on:
-          id: rgb_led
-          blue: 100%
-
-      - delay: 900ms
-
-      - light.turn_off: rgb_led
-
-      - lambda: |-
-          id(feeding_now) = false;
-interval:
-  - interval: 30s
-    then:
-      - lambda: |-
-          auto rtc = id(rtc_saati).now();
-          if (rtc.is_valid()) {
-            ESP_LOGI("DS3231_LAMBDA", "RTC Saat: %04d-%02d-%02d %02d:%02d:%02d | Timestamp: %ld",
-                     rtc.year, rtc.month, rtc.day_of_month,
-                     rtc.hour, rtc.minute, rtc.second, rtc.timestamp);
-          } else {
-            ESP_LOGW("DS3231_LAMBDA", "RTC saati geçersiz!");
-          }
-          
-          auto sntp = id(internet_saati).now();
-          if (sntp.is_valid()) {
-            ESP_LOGI("SNTP_LAMBDA", "SNTP Saat: %04d-%02d-%02d %02d:%02d:%02d",
-                     sntp.year, sntp.month, sntp.day_of_month,
-                     sntp.hour, sntp.minute, sntp.second);
-          }
-# ============================================================
-# RGB LED
-# ============================================================
-light:
-  - platform: esp32_rmt_led_strip
-    name: "RGB LED"
-    id: rgb_led
-    rgb_order: GRB
-    pin: GPIO48
-    num_leds: 1
-    chipset: ws2812
-    effects:
-      - pulse:
-          name: slow_pulse
-          transition_length: 1s
-          update_interval: 2s
-
-# ============================================================
-# Global Değişkenler
-# ============================================================  
-globals:
-  - id: feeding_now
-    type: bool
-    restore_value: no
-    initial_value: "false"
-
-  - id: sistem_hazir
-    type: bool
-    restore_value: no
-    initial_value: "false"
-
-  - id: boot_yuzde
-    type: int
-    restore_value: no
-    initial_value: "0"
-
-  - id: son_yemleme_saati
-    type: std::string
-    restore_value: yes
-    initial_value: '"--:--"'
-
-  - id: yem_seviyesi_yuzde
-    type: int
-    restore_value: no
-    initial_value: "72"
-number:
-  - platform: template
-    name: "Servo Açısı"
-    id: servo_acisi
-    optimistic: true
-    min_value: -100
-    max_value: 100
-    step: 1
-    initial_value: 0
-    restore_value: true
-# ============================================================
-# DOKUNMATİK EKRAN (XPT2046)
-# ============================================================
-touchscreen:
-  platform: xpt2046
-  id: ekranim_touch
-  cs_pin: GPIO15
-  update_interval: 100ms
-  spi_id: tft_spi
-  threshold: 400
-  interrupt_pin: GPIO16
-  transform:
-    mirror_y: true
-  calibration:
-    x_min: 280
-    x_max: 3860
-    y_min: 340
-    y_max: 3860
-
-# ============================================================
-# DS18B20
-# ============================================================
-one_wire:
-  - platform: gpio
-    pin: GPIO4
-
-# ============================================================
-# SENSÖRLER
-# ============================================================
-sensor:
-  - platform: dallas_temp
-    name: "Water Temperature"
-    id: water_temp
-    update_interval: 2s
-    unit_of_measurement: "°C"
-    accuracy_decimals: 1
-    on_value:
-      then:
-        - lvgl.label.update:
-            id: lbl_temp_value
-            text:
-              format: "%.1f"
-              args: ['x']
-  - platform: vl53l0x
-    name: "Mesafe Sensörü"
-    address: 0x29
-    i2c_id: saat_tutucu
-    update_interval: 1s
-    long_range: false
-
-  - platform: uptime
-    name: "Uptime Sensor"
-    id: uptime_sensor_seconds
-    entity_category: diagnostic
-    internal: true
-
-  - platform: wifi_signal
-    id: wifi_rssi
-    update_interval: 30s
-
-    on_value:
-      then:
-        - text_sensor.template.publish:
-            id: wifi_ikonu
-            state: !lambda |-
-              if (x > -55)
-                return "1";
-
-              if (x > -65)
-                return "2";
-
-              if (x > -75)
-                return "3";
-
-              return "0";
-
-  - platform: copy
-    source_id: wifi_rssi
-    id: wifi_signal_percent
-    name: "WiFi Sinyal"
-    filters: 
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
-    unit_of_measurement: "%"
-    entity_category: "diagnostic"
-    device_class: ""
-
-# ============================================================
-# TFT EKRAN (ILI9341)
-# ============================================================
-display:
-  - platform: mipi_spi
-    model: ILI9341
-    cs_pin: GPIO10
-    dc_pin: GPIO9
-    id: ekranim
-    reset_pin: GPIO14
-    spi_id: tft_spi
-    rotation: 0°
-    dimensions:
-      width: 240
-      height: 320
-    invert_colors: false
-    auto_clear_enabled: false
-    update_interval: 16ms
-# ============================================================
-# METİN SENSÖRLER
-# ============================================================
-text_sensor:
-  - platform: template
-    id: wifi_ikonu
-  - platform: uptime
-    id: uptime_sensor_text
-    name: Uptime
-    format:
-      separator: " "
-      days: " Gün"
-      hours: " Saat"
-      minutes: " Dakika"
-      seconds: " saniye"
-    icon: mdi:clock-start
-  - platform: wifi_info
-    ip_address:
-      name: "IP Adresi"
-      id: wifi_ip
-binary_sensor:
-  - platform: status
-    name: "Balık Yemleyici"
-    id: wifi_status
-    on_state:
-      then:
-        - if:
-            condition:
-              lambda: 'return x;'
-            then:
-              - lvgl.label.update:
-                  id: lbl_wifi_icon
-                  text: "\U000F05A9"  # mdi-wifi
-              - lvgl.label.update:
-                  id: lbl_wifi_text
-                  text: "ONLINE"
-            else:
-              - lvgl.label.update:
-                  id: lbl_wifi_icon
-                  text: "\U000F05AA"  # mdi-wifi-off
-              - lvgl.label.update:
-                  id: lbl_wifi_text
-                  text: "LOCAL"
-
 # ============================================================
 # FONTLAR
 # ============================================================
@@ -1550,4 +355,1026 @@ font:
       "\U000F0140",  # mdi-chevron-left
       "\U000F0142",  # mdi-chevron-right
       "\U000F02D1",  # mdi-heart (opsiyonel)
+      "\U000F0594",  # Clock
     ]
+
+#####
+# LVGL
+#####
+lvgl:
+  id: lvgl_id
+  displays: ekranim
+  theme:
+    
+    # Kart stili (tum widgetler icin temel)
+    obj:
+      bg_color: 0x1125      # Dark Navy Panel
+      bg_opa: COVER
+      border_width: 0
+      radius: 12
+      pad_all: 8
+      
+    # Label defaults
+    label:
+      text_font: font_kucuk
+      text_color: 0xFFFF
+    
+    # Butonlar (navbar icin)
+    button:
+      bg_color: 0x1125
+      bg_opa: COVER
+      border_width: 0
+      radius: 0
+      text_color: 0x7BFF      # Soft Blue
+      text_font: font_kucuk
+      pad_all: 0
+      pressed:
+        bg_color: 0x1A3A
+      checked:
+        text_color: 0xF1A6    # Coral Red (active tab)
+    
+    # Arc/Progress (sicaklik gostergesi icin)
+    arc:
+      bg_color: 0x1125
+      indicator:
+        bg_color: 0xF1A6      # Coral Red
+        bg_grad_color: 0xFE60  # Golden Yellow
+        bg_grad_dir: VER
+      knob:
+        bg_color: 0xFFFF
+        border_width: 2
+        border_color: 0xF1A6
+
+  # ===== STYLE DEFINITIONS =====
+  style_definitions:
+    # Header stili
+    - id: style_header
+      bg_color: 0x0A2A
+      bg_opa: COVER
+      border_width: 0
+      radius: 0
+      pad_all: 0
+      height: 34
+      width: 100%
+      text_color: 0xFFFF
+      text_font: font_orta
+
+    # Kart stili (sicaklik karti)
+    - id: style_card
+      bg_color: 0x1125
+      bg_opa: COVER
+      border_width: 0
+      radius: 16
+      pad_all: 12
+      shadow_color: 0x000000
+      shadow_opa: 30%
+      shadow_width: 8
+      shadow_spread: 2
+
+    # Kart ust accent cizgisi
+    - id: style_card_accent
+      bg_color: 0xF1A6        # Coral Red
+      bg_opa: COVER
+      border_width: 0
+      radius: 4
+      height: 6
+      width: 100%
+
+    # Sicaklik degeri (buyuk)
+    - id: style_temp_value
+      text_font: font_buyuk
+      text_color: 0xFFFF
+      text_align: CENTER
+
+    # Birim label (°C)
+    - id: style_temp_unit
+      text_font: font_orta
+      text_color: 0x7BFF
+      text_align: CENTER
+
+    # Alert strip - ALL OK
+    - id: style_alert_ok
+      bg_color: 0x1125
+      bg_opa: COVER
+      radius: 12
+      pad_all: 8
+      text_color: 0x2E9A      # Ocean Teal
+      text_font: font_orta
+
+    # Alert strip - WARNING
+    - id: style_alert_warn
+      bg_color: 0x1125
+      bg_opa: COVER
+      radius: 12
+      pad_all: 8
+      text_color: 0xF1A6      # Coral Red
+      text_font: font_kucuk
+
+    # Navbar stili
+    - id: style_navbar
+      bg_color: 0x1125
+      bg_opa: COVER
+      radius: 0
+      border_width: 0
+      height: 28
+      width: 100%
+      pad_all: 0
+
+    # Navbar active indicator
+    - id: style_nav_indicator
+      bg_color: 0xF1A6
+      height: 2
+      width: 60
+      radius: 1
+
+    # WiFi status
+    - id: style_wifi_online
+      text_color: 0x2E9A      # Ocean Teal
+      text_font: font_kucuk
+
+    - id: style_wifi_offline
+      text_color: 0xF1A6      # Coral Red
+      text_font: font_kucuk
+
+  # ===== SAYFALAR =====
+  pages:
+    # ========================================
+    # HOME PAGE
+    # ========================================
+    - id: page_home
+      bg_color: 0x111827
+      pad_all: 0
+      widgets:
+        - obj:
+            id: grid_screen
+            x: 0
+            y: 0
+            width: 240
+            height: 320
+            bg_color: 0x08142D
+            border_width: 0
+            radius: 0
+            pad_all: 0
+            widgets:
+              - obj:
+                  id: hdr_shb_bar
+                  x: 4
+                  y: 4
+                  width: 232
+                  height: 36
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: hdr_shb_title
+                        x: 14
+                        y: 8
+                        width: 140
+                        height: 20
+                        text: "Balık Yemleyici"
+                        text_color: 0xF1F5F9
+                        text_align: LEFT
+                        long_mode: CLIP
+                        text_font: font_kucuk
+                    - label:
+                        id: hdr_shb_wifi
+                        x: 210
+                        y: 10
+                        width: 20
+                        height: 20
+                        text: "\uF1EB"
+                        text_font: font_kucuk
+                        text_align: CENTER
+                        text_color: 0x10B981
+              - obj:
+                  id: ms1_ms_card
+                  x: 4
+                  y: 44
+                  width: 110
+                  height: 36
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 1
+                  border_color: 0x162038
+                  border_opa: 20%
+                  radius: 16
+                  shadow_width: 5
+                  shadow_color: 0xF59E0B
+                  shadow_opa: 35%
+                  scrollbar_mode: "OFF"
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: ms1_ms_icon
+                        x: 9
+                        y: 10
+                        width: 16
+                        height: 16
+                        text: "\uF0E7"
+                        text_font: font_kucuk
+                        text_align: CENTER
+                        text_color: 0xF59E0B
+                    - label:
+                        id: ms1_ms_value
+                        x: 30
+                        y: 7
+                        width: 53
+                        height: 22
+                        text: "23.5"
+                        text_color: 0xF1F5F9
+                        text_align: LEFT
+                        long_mode: CLIP
+                        text_font: montserrat_18
+                    - label:
+                        id: ms1_ms_unit
+                        x: 80
+                        y: 11
+                        width: 20
+                        height: 14
+                        text: "°C"
+                        text_color: 0x8E9FB8
+                        text_align: LEFT
+                        long_mode: CLIP
+                        text_font: montserrat_10
+              - obj:
+                  id: ms2_ms_card
+                  x: 126
+                  y: 44
+                  width: 110
+                  height: 36
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 1
+                  border_color: 0x162038
+                  border_opa: 20%
+                  radius: 16
+                  shadow_width: 5
+                  shadow_color: 0x06B6D4
+                  shadow_opa: 35%
+                  scrollbar_mode: "OFF"
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: ms2_ms_icon
+                        x: 9
+                        y: 10
+                        width: 16
+                        height: 16
+                        text: "\U000F0150"
+                        text_font: mdi_icons
+                        text_align: CENTER
+                        text_color: 0x06B6D4
+                    - label:
+                        id: ms2_ms_value
+                        x: 30
+                        y: 7
+                        width: 74
+                        height: 22
+                        text: "12:45"
+                        text_color: 0xF1F5F9
+                        text_align: LEFT
+                        long_mode: CLIP
+                        text_font: montserrat_18
+              - obj:
+                  id: ic1_ic_card
+                  x: 4
+                  y: 84
+                  width: 110
+                  height: 84
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 1
+                  border_color: 0x162038
+                  border_opa: 20%
+                  radius: 16
+                  shadow_width: 5
+                  shadow_color: 0x10B981
+                  shadow_opa: 35%
+                  scrollbar_mode: "OFF"
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: ic1_ic_icon
+                        x: 10
+                        y: 9
+                        width: 90
+                        height: 22
+                        text: "\uF015"
+                        text_font: montserrat_18
+                        text_align: CENTER
+                        text_color: 0x10B981
+                    - label:
+                        id: ic1_ic_value
+                        x: 10
+                        y: 33
+                        width: 90
+                        height: 22
+                        text: "12.06.2026"
+                        text_color: 0xF1F5F9
+                        text_align: CENTER
+                        long_mode: CLIP
+                        text_font: montserrat_18
+                    - label:
+                        id: ic1_ic_label
+                        x: 10
+                        y: 58
+                        width: 90
+                        height: 12
+                        text: "Tarih"
+                        text_color: 0x8E9FB8
+                        text_align: CENTER
+                        long_mode: CLIP
+                        text_font: montserrat_10
+                    - line:
+                        id: ic1_ic_accent
+                        x: 10
+                        y: 72
+                        width: 90
+                        height: 2
+                        points:
+                          - 0, 0
+                          - 124, 0
+                        line_color: 0x10B981
+                        line_rounded: true
+              - obj:
+                  id: ic2_ic_card
+                  x: 126
+                  y: 84
+                  width: 110
+                  height: 84
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 1
+                  border_color: 0x162038
+                  border_opa: 20%
+                  radius: 16
+                  shadow_width: 5
+                  shadow_color: 0x8B5CF6
+                  shadow_opa: 35%
+                  scrollbar_mode: "OFF"
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: ic2_ic_icon
+                        x: 10
+                        y: 9
+                        width: 90
+                        height: 22
+                        text: "\uF013"
+                        text_font: montserrat_18
+                        text_align: CENTER
+                        text_color: 0x8B5CF6
+                    - label:
+                        id: ic2_ic_value
+                        x: 10
+                        y: 33
+                        width: 90
+                        height: 22
+                        text: "3d 14h"
+                        text_color: 0xF1F5F9
+                        text_align: CENTER
+                        long_mode: CLIP
+                        text_font: montserrat_18
+                    - label:
+                        id: ic2_ic_label
+                        x: 10
+                        y: 58
+                        width: 90
+                        height: 12
+                        text: "Uptime"
+                        text_color: 0x8E9FB8
+                        text_align: CENTER
+                        long_mode: CLIP
+                        text_font: montserrat_10
+                    - line:
+                        id: ic2_ic_accent
+                        x: 10
+                        y: 72
+                        width: 90
+                        height: 2
+                        points:
+                          - 0, 0
+                          - 124, 0
+                        line_color: 0x8B5CF6
+                        line_rounded: true
+              - obj:
+                  id: sw_rs1_card
+                  x: 4
+                  y: 172
+                  width: 110
+                  height: 56
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 1
+                  border_color: 0x162038
+                  border_opa: 20%
+                  radius: 16
+                  shadow_width: 5
+                  shadow_color: 0x10B981
+                  shadow_opa: 35%
+                  scrollbar_mode: "OFF"
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: sw_rs1_lbl_icon
+                        x: 4
+                        y: 7
+                        width: 20
+                        height: 18
+                        text: "\uF043"
+                        text_font: font_kucuk
+                        text_align: CENTER
+                        text_color: 0x10B981
+                    - label:
+                        id: anasayfa_saat
+                        x: 30
+                        y: 24
+                        width: 53
+                        height: 22
+                        text: "19:30"
+                        text_color: 0xF1F5F9
+                        text_align: LEFT
+                        long_mode: CLIP
+                        text_font: montserrat_18
+                    - label:
+                        id: anasayfa_son_yemleme_label
+                        x: 10
+                        y: 10
+                        width: 90
+                        height: 12
+                        text: "Son Yemleme"
+                        text_color: 0x8E9FB8
+                        text_align: CENTER
+                        long_mode: CLIP
+                        text_font: montserrat_10
+              - obj:
+                  id: mb_mb1_card
+                  x: 126
+                  y: 172
+                  width: 110
+                  height: 56
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 1
+                  border_color: 0x162038
+                  border_opa: 20%
+                  radius: 16
+                  shadow_width: 5
+                  shadow_color: 0x3B82F6
+                  shadow_opa: 35%
+                  scrollbar_mode: "OFF"
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: mb_mb1_lbl_value
+                        x: 6
+                        y: 6
+                        width: 90
+                        height: 14
+                        text: "-42 dBm"
+                        text_color: 0x3B82F6
+                        text_align: CENTER
+                        long_mode: CLIP
+                        text_font: montserrat_10
+                    - label:
+                        id: mb_mb1_lbl_name
+                        x: 6
+                        y: 19
+                        width: 90
+                        height: 12
+                        text: "WiFi Signal"
+                        text_color: 0x8E9FB8
+                        text_align: CENTER
+                        long_mode: CLIP
+                        text_font: montserrat_10
+                    - bar:
+                        id: mb_mb1_bar
+                        x: 6
+                        y: 39
+                        width: 90
+                        height: 4
+                        value: 78
+                        min_value: 0
+                        max_value: 100
+                        indicator:
+                          bg_color: 0x3B82F6
+                          radius: 2
+                        bg_color: 0x0F1929
+                        radius: 9999
+              - obj:
+                  id: dm_dm_card
+                  x: 4
+                  y: 232
+                  width: 232
+                  height: 84
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 1
+                  border_color: 0x162038
+                  border_opa: 20%
+                  radius: 16
+                  shadow_width: 5
+                  shadow_color: 0xFBBF24
+                  shadow_opa: 35%
+                  scrollbar_mode: "OFF"
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: dm_dm_lbl_room
+                        x: 20
+                        y: 12
+                        width: 162
+                        height: 20
+                        text: "Desk Lamp"
+                        text_color: 0xF1F5F9
+                        text_align: LEFT
+                        long_mode: CLIP
+                        text_font: font_kucuk
+                    - label:
+                        id: dm_dm_lbl_pct
+                        x: 141
+                        y: 7
+                        width: 80
+                        height: 28
+                        text: "65%"
+                        text_color: 0xFBBF24
+                        text_align: RIGHT
+                        long_mode: CLIP
+                        text_font: font_buyuk
+                    - label:
+                        id: dm_dm_lbl_sub
+                        x: 20
+                        y: 38
+                        width: 202
+                        height: 14
+                        text: "Brightness"
+                        text_color: 0x8E9FB8
+                        text_align: LEFT
+                        long_mode: CLIP
+                        text_font: montserrat_10
+                    - slider:
+                        id: dm_dm_slider
+                        x: 20
+                        y: 58
+                        width: 204
+                        height: 16
+                        value: 31
+                        min_value: 0
+                        max_value: 100
+                        bg_color: 0x0F1929
+                        border_width: 0
+                        radius: 9999
+                        bg_opa: 100%
+                        knob:
+                          bg_color: 0xFFFFFF
+                          border_width: 0
+                          radius: 50
+                          pad_all: 0
+                        indicator:
+                          bg_color: 0xFBBF24
+                          bg_opa: 80%
+                          radius: 8
+                        animated: true
+
+    # ========================================
+    # CHART PAGE (Analytics)
+    # ========================================
+    - id: page_chart
+      hidden: true
+      widgets:
+        - obj:
+            styles: style_header
+            align: TOP_MID
+            widgets:
+              - label:
+                  text: "TEMP HISTORY"
+                  align: LEFT_MID
+                  x: 16
+
+        # Grafik alani placeholder
+        - obj:
+            styles: style_card
+            x: 20
+            y: 50
+            width: 280
+            height: 150
+            widgets:
+              - label:
+                  text: "30°C"
+                  text_font: font_kucuk
+                  text_color: 0x7BFF
+                  align: TOP_LEFT
+                  x: 8
+                  y: 8
+              
+              - label:
+                  text: "20°C"
+                  text_font: font_kucuk
+                  text_color: 0x7BFF
+                  align: BOTTOM_LEFT
+                  x: 8
+                  y: -8
+
+              - label:
+                  text: "Collecting data..."
+                  text_font: font_kucuk
+                  text_color: 0x7BFF
+                  align: CENTER
+
+    # ========================================
+    # LOG PAGE
+    # ========================================
+    - id: page_log
+      hidden: true
+      widgets:
+        - obj:
+            styles: style_header
+            align: TOP_MID
+            widgets:
+              - label:
+                  text: "EVENT LOG"
+                  align: LEFT_MID
+                  x: 16
+
+        - obj:
+            styles: style_card
+            x: 20
+            y: 50
+            width: 280
+            height: 32
+            widgets:
+              - label:
+                  text: "System booted"
+                  text_font: font_kucuk
+                  align: LEFT_MID
+                  x: 12
+
+        - obj:
+            styles: style_card
+            x: 20
+            y: 90
+            width: 280
+            height: 32
+            widgets:
+              - label:
+                  text: "WiFi connected"
+                  text_font: font_kucuk
+                  align: LEFT_MID
+                  x: 12
+
+        - obj:
+            styles: style_card
+            x: 20
+            y: 130
+            width: 280
+            height: 32
+            widgets:
+              - label:
+                  text: "Sensor ready"
+                  text_font: font_kucuk
+                  align: LEFT_MID
+                  x: 12
+
+    # ========================================
+    # SETTINGS PAGE
+    # ========================================
+    - id: page_set
+      hidden: true
+      widgets:
+        - obj:
+            styles: style_header
+            align: TOP_MID
+            widgets:
+              - label:
+                  text: "SETTINGS"
+                  align: LEFT_MID
+                  x: 16
+
+        - obj:
+            styles: style_card
+            x: 20
+            y: 50
+            width: 280
+            height: 32
+            widgets:
+              - label:
+                  text: "Alert Thresholds"
+                  text_font: font_kucuk
+                  align: LEFT_MID
+                  x: 12
+
+        - obj:
+            styles: style_card
+            x: 20
+            y: 90
+            width: 280
+            height: 32
+            widgets:
+              - label:
+                  text: "Display Brightness"
+                  text_font: font_kucuk
+                  align: LEFT_MID
+                  x: 12
+
+        - obj:
+            styles: style_card
+            x: 20
+            y: 130
+            width: 280
+            height: 32
+            widgets:
+              - label:
+                  text: "Data Interval"
+                  text_font: font_kucuk
+                  align: LEFT_MID
+                  x: 12
+
+  # ===== NAVBAR (Top Layer - Always on top) =====
+  
+####
+    - id: canvas_3
+      bg_color: 0x0B0F14
+      pad_all: 0
+      widgets:
+        - obj:
+            id: lv_obj_0
+            x: 0
+            y: 0
+            width: 240
+            height: 320
+            bg_color: 0x101010
+            pad_all: 0
+            widgets:
+              - label:
+                  id: boot_logo
+                  x: 107
+                  y: 80
+                  width: 24
+                  height: 24
+                  text: "\U000F04F9"
+                  text_font: mdi_icons
+              - label:
+                  id: lv_label_1
+                  x: 70
+                  y: 110
+                  text: "AKVARYUM OS"
+                  text_color: 0xFFFFFF
+                  text_font: montserrat_14
+              - spinner:
+                  id: lv_spinner_2
+                  x: 0
+                  y: 10
+                  width: 40
+                  height: 40
+                  align: CENTER
+                  spin_time: 1000ms
+                  arc_length: 60deg
+                  arc_color: 0x818CF8
+                  indicator:
+                    arc_color: 0xFFFFFF
+              - label:
+                  id: boot_durum
+                  x: 80
+                  y: 220
+                  text: "Başlatılıyor..."
+                  text_color: 0x80A40A
+                  text_font: montserrat_14
+
+script:
+
+  - id: yemleme_script
+    mode: restart
+
+    then:
+
+      - lambda: |-
+          id(feeding_now) = true;
+
+      - light.turn_on:
+          id: rgb_led
+          blue: 100%
+
+      - delay: 900ms
+
+      - light.turn_off: rgb_led
+
+      - lambda: |-
+          id(feeding_now) = false;
+interval:
+  - interval: 30s
+    then:
+      - lambda: |-
+          auto rtc = id(rtc_saati).now();
+          if (rtc.is_valid()) {
+            ESP_LOGI("DS3231_LAMBDA", "RTC Saat: %04d-%02d-%02d %02d:%02d:%02d | Timestamp: %ld",
+                     rtc.year, rtc.month, rtc.day_of_month,
+                     rtc.hour, rtc.minute, rtc.second, rtc.timestamp);
+          } else {
+            ESP_LOGW("DS3231_LAMBDA", "RTC saati geçersiz!");
+          }
+          
+          auto sntp = id(internet_saati).now();
+          if (sntp.is_valid()) {
+            ESP_LOGI("SNTP_LAMBDA", "SNTP Saat: %04d-%02d-%02d %02d:%02d:%02d",
+                     sntp.year, sntp.month, sntp.day_of_month,
+                     sntp.hour, sntp.minute, sntp.second);
+          }
+# ============================================================
+# RGB LED
+# ============================================================
+light:
+  - platform: esp32_rmt_led_strip
+    name: "RGB LED"
+    id: rgb_led
+    rgb_order: GRB
+    pin: GPIO48
+    num_leds: 1
+    chipset: ws2812
+    effects:
+      - pulse:
+          name: slow_pulse
+          transition_length: 1s
+          update_interval: 2s
+
+# ============================================================
+# Global Değişkenler
+# ============================================================  
+globals:
+  - id: feeding_now
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: sistem_hazir
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: boot_yuzde
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  - id: son_yemleme_saati
+    type: std::string
+    restore_value: yes
+    initial_value: '"--:--"'
+
+  - id: yem_seviyesi_yuzde
+    type: int
+    restore_value: no
+    initial_value: "72"
+number:
+  - platform: template
+    name: "Servo Açısı"
+    id: servo_acisi
+    optimistic: true
+    min_value: -100
+    max_value: 100
+    step: 1
+    initial_value: 0
+    restore_value: true
+# ============================================================
+# DOKUNMATİK EKRAN (XPT2046)
+# ============================================================
+touchscreen:
+  platform: xpt2046
+  id: ekranim_touch
+  cs_pin: GPIO15
+  update_interval: 100ms
+  spi_id: tft_spi
+  threshold: 400
+  interrupt_pin: GPIO16
+  transform:
+    mirror_y: true
+  calibration:
+    x_min: 280
+    x_max: 3860
+    y_min: 340
+    y_max: 3860
+
+# ============================================================
+# DS18B20
+# ============================================================
+one_wire:
+  - platform: gpio
+    pin: GPIO4
+
+# ============================================================
+# SENSÖRLER
+# ============================================================
+sensor:
+  - platform: dallas_temp
+    name: "Water Temperature"
+    id: water_temp
+    update_interval: 2s
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: ms1_ms_value
+            text:
+              format: "%.1f"
+              args: ['x']
+  - platform: vl53l0x
+    name: "Mesafe Sensörü"
+    address: 0x29
+    i2c_id: saat_tutucu
+    update_interval: 1s
+    long_range: false
+
+  - platform: uptime
+    name: "Uptime Sensor"
+    id: uptime_sensor_seconds
+    entity_category: diagnostic
+    internal: true
+
+  - platform: wifi_signal
+    id: wifi_rssi
+    update_interval: 30s
+
+    on_value:
+      then:
+        - text_sensor.template.publish:
+            id: wifi_ikonu
+            state: !lambda |-
+              if (x > -55)
+                return "1";
+
+              if (x > -65)
+                return "2";
+
+              if (x > -75)
+                return "3";
+
+              return "0";
+
+  - platform: copy
+    source_id: wifi_rssi
+    id: wifi_signal_percent
+    name: "WiFi Sinyal"
+    filters: 
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: "diagnostic"
+    device_class: ""
+
+# ============================================================
+# TFT EKRAN (ILI9341)
+# ============================================================
+display:
+  - platform: mipi_spi
+    model: ILI9341
+    cs_pin: GPIO10
+    dc_pin: GPIO9
+    id: ekranim
+    reset_pin: GPIO14
+    spi_id: tft_spi
+    rotation: 0°
+    dimensions:
+      width: 240
+      height: 320
+    invert_colors: false
+    auto_clear_enabled: false
+    update_interval: 16ms
+# ============================================================
+# METİN SENSÖRLER
+# ============================================================
+text_sensor:
+  - platform: template
+    id: wifi_ikonu
+  - platform: uptime
+    id: uptime_sensor_text
+    name: Uptime
+    format:
+      separator: " "
+      days: " Gün"
+      hours: " Saat"
+      minutes: " Dakika"
+      seconds: " saniye"
+    icon: mdi:clock-start
+  - platform: wifi_info
+    ip_address:
+      name: "IP Adresi"
+      id: wifi_ip
+binary_sensor:
+  - platform: status
+    name: "Balık Yemleyici"
+    id: wifi_status
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: 'return x;'
+            then:
+              - lvgl.label.update:
+                  id: hdr_shb_wifi
+                  text: "\U000F05A9"  # mdi-wifi
+            else:
+              - lvgl.label.update:
+                  id: hdr_shb_wifi
+                  text: "\U000F05AA"  # mdi-wifi-off

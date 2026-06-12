@@ -49,9 +49,13 @@ time:
       then:
         - lvgl.label.update:
             id: ms2_ms_value
-            text:
-              format: "%.1f"
-              args: ['x']
+            text: !lambda |-
+              auto now = id(internet_saati).now();
+              if (!now.is_valid())
+                return std::string("--:--");
+              char buf[6];
+              snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
+              return std::string(buf);
 
   - platform: ds3231
     id: rtc_saati

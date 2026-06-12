@@ -349,7 +349,9 @@ font:
       - "7"
       - "8"
       - "9"
-  - file: "fonts/materialdesignicons-webfont.ttf"
+  - file:
+      url: "https://cdn.jsdelivr.net/npm/@mdi/font@latest/fonts/materialdesignicons-webfont.ttf"
+      type: web
     id: mdi_icons
     size: 24
     bpp: 4

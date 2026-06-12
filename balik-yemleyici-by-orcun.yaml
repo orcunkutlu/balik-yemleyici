@@ -45,6 +45,13 @@ time:
       - time.google.com
       - time.cloudflare.com
       - 0.tr.pool.ntp.org
+    on_time_sync:
+      then:
+        - lvgl.label.update:
+            id: ms2_ms_value
+            text:
+              format: "%.1f"
+              args: ['x']
 
   - platform: ds3231
     id: rtc_saati

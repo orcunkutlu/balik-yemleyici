@@ -47,13 +47,11 @@ time:
       - 0.tr.pool.ntp.org
     on_time_sync:
       then:
-        - lambda: |-
-            auto now = id(internet_saati).now();
-            if (!now.is_valid())
-              return;
-            char buf[6];
-            snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
-            id(ms2_ms_value).set_text(buf);
+        - lvgl.label.update:
+            id: ms2_ms_value
+            text:
+              format: "%.1f"
+              args: ['x']
 
   - platform: ds3231
     id: rtc_saati

@@ -796,7 +796,7 @@ lvgl:
                         y: 7
                         width: 20
                         height: 18
-                        text: "\U000F04F9"
+                        text: "\U000F023A"
                         text_font: mdi_icons
                         text_align: CENTER
                         text_color: 0x10B981

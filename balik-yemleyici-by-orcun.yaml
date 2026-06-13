@@ -381,7 +381,9 @@ font:
 # LVGL
 #####
 lvgl:
-  displays: "ekranim"
+  page_wrap: false
+  id: lvgl_id
+  displays: ekranim
   theme:
     
     # Kart stili (tum widgetler icin temel)

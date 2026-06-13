@@ -683,7 +683,7 @@ lvgl:
                         width: 90
                         height: 22
                         text: "\U000F00ED"
-                        text_font: montserrat_18
+                        text_font: mdi_icons
                         text_align: CENTER
                         text_color: 0x10B981
                     - label:

@@ -374,6 +374,7 @@ font:
       "\U000F0142",  # mdi-chevron-right
       "\U000F02D1",  # mdi-heart (opsiyonel)
       "\U000F0594",  # Clock
+      "\U000F140B", # mdi-bolt
     ]
 
 #####

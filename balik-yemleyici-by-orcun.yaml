@@ -1348,16 +1348,3 @@ binary_sensor:
   - platform: status
     name: "Balık Yemleyici"
     id: wifi_status
-    on_state:
-      then:
-        - if:
-            condition:
-              lambda: 'return x;'
-            then:
-              - lvgl.label.update:
-                  id: header_wifi_icon
-                  text: "\U000F05A9"  # mdi-wifi
-            else:
-              - lvgl.label.update:
-                  id: header_wifi_icon
-                  text: "\U000F05AA"  # mdi-wifi-off

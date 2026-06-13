@@ -530,6 +530,7 @@ lvgl:
             width: 240
             height: 320
             bg_color: 0x08142D
+            scrollbar_mode: "OFF"
             border_width: 0
             radius: 0
             pad_all: 0

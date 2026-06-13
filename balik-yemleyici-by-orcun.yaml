@@ -845,9 +845,9 @@ lvgl:
                         y: 31
                         width: 40
                         height: 28
-                        text: "\uF0E7"
+                        text: "\U000F140B"
                         text_color: 0xFBBF24
-                        text_font: montserrat_24
+                        text_font: mdi_icons
                         text_opa: 100%
                         text_align: CENTER
                         long_mode: CLIP
@@ -857,7 +857,7 @@ lvgl:
                         y: 36
                         width: 131
                         height: 18
-                        text: 'Light'
+                        text: 'Yem Ver'
                         text_color: 0x8E9FB8
                         text_font: montserrat_14
                         text_opa: 80%
@@ -871,25 +871,6 @@ lvgl:
                         height: 5
                         color: 0xFBBF24
                         brightness: 70%         
-              - button:
-                  id: btn_feed_now
-                  x: 4
-                  y: 232
-                  width: 232
-                  height: 56
-
-                  bg_color: 0x10B981
-                  radius: 16
-                  border_width: 0
-
-                  widgets:
-                    - label:
-                        align: CENTER
-                        text: "YEM VER"
-                        text_color: 0xFFFFFF
-                        text_font: font_orta
-
-
                   on_click:
                     then:
                       - script.execute: yemleme_script

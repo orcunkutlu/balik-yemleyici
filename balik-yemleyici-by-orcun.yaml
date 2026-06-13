@@ -380,6 +380,7 @@ font:
 # LVGL
 #####
 lvgl:
+  page_wrap: false
   id: lvgl_id
   displays: ekranim
   theme:

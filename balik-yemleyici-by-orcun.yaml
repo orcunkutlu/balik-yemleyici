@@ -359,7 +359,7 @@ font:
     size: 24
     bpp: 4
     glyphs: [
-      "\U000F04F9",  # mdi-fish
+      "\U000F023A",  # mdi-fish
       "\U000F05A9",  # mdi-wifi
       "\U000F05AA",  # mdi-wifi-off
       "\U000F050F",  # mdi-thermometer
@@ -822,6 +822,55 @@ lvgl:
                         text_align: CENTER
                         long_mode: CLIP
                         text_font: montserrat_10
+              - obj:
+                  id: ib_card
+                  x: 0
+                  y: 0
+                  width: 207
+                  height: 90
+                  scrollbar_mode: OFF
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_color: 0x162038
+                  border_width: 1
+                  border_opa: 20%
+                  radius: 16
+                  shadow_width: 16
+                  shadow_color: 0xFBBF24
+                  shadow_opa: 35%
+                  widgets:
+                    - label:
+                        id: ib_icon
+                        x: 14
+                        y: 31
+                        width: 40
+                        height: 28
+                        text: "\uF0E7"
+                        text_color: 0xFBBF24
+                        text_font: montserrat_24
+                        text_opa: 100%
+                        text_align: CENTER
+                        long_mode: CLIP
+                    - label:
+                        id: ib_label
+                        x: 62
+                        y: 36
+                        width: 131
+                        height: 18
+                        text: 'Light'
+                        text_color: 0x8E9FB8
+                        text_font: montserrat_14
+                        text_opa: 80%
+                        text_align: LEFT
+                        long_mode: CLIP
+                    - led:
+                        id: ib_led
+                        x: 185
+                        y: 16
+                        width: 5
+                        height: 5
+                        color: 0xFBBF24
+                        brightness: 70%         
               - button:
                   id: btn_feed_now
                   x: 4
@@ -840,9 +889,11 @@ lvgl:
                         text_color: 0xFFFFFF
                         text_font: font_orta
 
+
                   on_click:
                     then:
                       - script.execute: yemleme_script
+                      
               - obj:
                   id: navbar
                   x: 0
@@ -1095,7 +1146,7 @@ lvgl:
                   y: 80
                   width: 24
                   height: 24
-                  text: "\U000F04F9"
+                  text: "\U000F023A"
                   text_font: mdi_icons
               - label:
                   id: lv_label_1

@@ -825,10 +825,10 @@ lvgl:
                         text_font: montserrat_10
               - obj:
                   id: ib_card
-                  x: 0
-                  y: 0
-                  width: 207
-                  height: 90
+                  x: 4
+                  y: 232
+                  width: 232
+                  height: 56
                   scrollbar_mode: "OFF"
                   bg_color: 0x070E1B
                   bg_opa: 95%

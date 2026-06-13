@@ -594,7 +594,7 @@ lvgl:
                         width: 16
                         height: 16
                         text: "\U000F050F"
-                        text_font: font_kucuk
+                        text_font: mdi_icons
                         text_align: CENTER
                         text_color: 0xF59E0B
                     - label:

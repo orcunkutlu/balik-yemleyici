@@ -381,7 +381,6 @@ font:
 # LVGL
 #####
 lvgl:
-  id: lvgl_id
   displays: ekranim
   theme:
     

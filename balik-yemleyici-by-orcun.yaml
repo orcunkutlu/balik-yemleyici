@@ -4,6 +4,12 @@
 esphome:
   name: balik-yemleyici-by-orcun
   friendly_name: "Balık Yemleyici By Orçun"
+  on_boot:
+    priority: -100
+    then:
+      - lvgl.page.show: page_boot
+      - delay: 6s
+      - lvgl.page.show: page_home
 
 esp32:
   variant: esp32s3
@@ -45,17 +51,6 @@ time:
       - time.google.com
       - time.cloudflare.com
       - 0.tr.pool.ntp.org
-    on_time_sync:
-      then:
-        - lvgl.label.update:
-            id: ms2_ms_value
-            text: !lambda |-
-              auto now = id(internet_saati).now();
-              if (!now.is_valid())
-                return std::string("--:--");
-              char buf[6];
-              snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
-              return std::string(buf);
 
   - platform: ds3231
     id: rtc_saati
@@ -359,6 +354,8 @@ font:
       "\U000F04F9",  # mdi-fish
       "\U000F05A9",  # mdi-wifi
       "\U000F05AA",  # mdi-wifi-off
+      "\U000F050F",  # mdi-thermometer
+      "\U000F00ED",  # mdi-date
       "\U000F0026",  # mdi-alert-circle
       "\U000F05E0",  # mdi-check-circle
       "\U000F0150",  # mdi-home
@@ -542,7 +539,7 @@ lvgl:
                   pad_all: 0
                   widgets:
                     - label:
-                        id: hdr_shb_title
+                        id: header_title
                         x: 14
                         y: 8
                         width: 140
@@ -553,17 +550,17 @@ lvgl:
                         long_mode: CLIP
                         text_font: font_kucuk
                     - label:
-                        id: hdr_shb_wifi
+                        id: header_wifi_icon
                         x: 210
                         y: 10
                         width: 20
                         height: 20
-                        text: "\uF1EB"
-                        text_font: font_kucuk
+                        text: "\U000F05A9"
+                        text_font: mdi_icons
                         text_align: CENTER
                         text_color: 0x10B981
               - obj:
-                  id: ms1_ms_card
+                  id: water_temp_card
                   x: 4
                   y: 44
                   width: 110
@@ -581,17 +578,17 @@ lvgl:
                   pad_all: 0
                   widgets:
                     - label:
-                        id: ms1_ms_icon
+                        id: water_temp_icon
                         x: 9
                         y: 10
                         width: 16
                         height: 16
-                        text: "\uF0E7"
+                        text: "\U000F050F"
                         text_font: font_kucuk
                         text_align: CENTER
                         text_color: 0xF59E0B
                     - label:
-                        id: ms1_ms_value
+                        id: water_temp_value
                         x: 30
                         y: 7
                         width: 53
@@ -602,7 +599,7 @@ lvgl:
                         long_mode: CLIP
                         text_font: montserrat_18
                     - label:
-                        id: ms1_ms_unit
+                        id: water_temp_unit
                         x: 80
                         y: 11
                         width: 20
@@ -613,7 +610,7 @@ lvgl:
                         long_mode: CLIP
                         text_font: montserrat_10
               - obj:
-                  id: ms2_ms_card
+                  id: clock_card
                   x: 126
                   y: 44
                   width: 110
@@ -631,7 +628,7 @@ lvgl:
                   pad_all: 0
                   widgets:
                     - label:
-                        id: ms2_ms_icon
+                        id: clock_icon
                         x: 9
                         y: 10
                         width: 16
@@ -641,7 +638,7 @@ lvgl:
                         text_align: CENTER
                         text_color: 0x06B6D4
                     - label:
-                        id: ms2_ms_value
+                        id: clock_value
                         x: 30
                         y: 7
                         width: 74
@@ -652,7 +649,7 @@ lvgl:
                         long_mode: CLIP
                         text_font: montserrat_18
               - obj:
-                  id: ic1_ic_card
+                  id: date_card
                   x: 4
                   y: 84
                   width: 110
@@ -670,17 +667,17 @@ lvgl:
                   pad_all: 0
                   widgets:
                     - label:
-                        id: ic1_ic_icon
+                        id: date_icon
                         x: 10
                         y: 9
                         width: 90
                         height: 22
-                        text: "\uF015"
+                        text: "\U000F00ED"
                         text_font: montserrat_18
                         text_align: CENTER
                         text_color: 0x10B981
                     - label:
-                        id: ic1_ic_value
+                        id: date_value
                         x: 10
                         y: 33
                         width: 90
@@ -691,7 +688,7 @@ lvgl:
                         long_mode: CLIP
                         text_font: montserrat_18
                     - label:
-                        id: ic1_ic_label
+                        id: date_label
                         x: 10
                         y: 58
                         width: 90
@@ -713,68 +710,64 @@ lvgl:
                         line_color: 0x10B981
                         line_rounded: true
               - obj:
-                  id: ic2_ic_card
+                  id: next_feed_card
+
                   x: 126
                   y: 84
+
                   width: 110
                   height: 84
+
                   bg_color: 0x070E1B
                   bg_opa: 95%
+
                   border_width: 1
                   border_color: 0x162038
                   border_opa: 20%
+
                   radius: 16
-                  shadow_width: 5
-                  shadow_color: 0x8B5CF6
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
+
                   widgets:
+
                     - label:
-                        id: ic2_ic_icon
+                        id: next_feed_icon
                         x: 10
                         y: 9
                         width: 90
                         height: 22
-                        text: "\uF013"
-                        text_font: montserrat_18
+
+                        text: "\U000F0150"
+                        text_font: mdi_icons
+
                         text_align: CENTER
-                        text_color: 0x8B5CF6
+                        text_color: 0x3B82F6
+
                     - label:
-                        id: ic2_ic_value
+                        id: next_feed_value
                         x: 10
                         y: 33
                         width: 90
                         height: 22
-                        text: "3d 14h"
+
+                        text: "08:00"
+
                         text_color: 0xF1F5F9
                         text_align: CENTER
-                        long_mode: CLIP
                         text_font: montserrat_18
+
                     - label:
-                        id: ic2_ic_label
                         x: 10
                         y: 58
                         width: 90
                         height: 12
-                        text: "Uptime"
+
+                        text: "Sonraki"
+
                         text_color: 0x8E9FB8
                         text_align: CENTER
-                        long_mode: CLIP
                         text_font: montserrat_10
-                    - line:
-                        id: ic2_ic_accent
-                        x: 10
-                        y: 72
-                        width: 90
-                        height: 2
-                        points:
-                          - 0, 0
-                          - 124, 0
-                        line_color: 0x8B5CF6
-                        line_rounded: true
               - obj:
-                  id: sw_rs1_card
+                  id: last_feed_card
                   x: 4
                   y: 172
                   width: 110
@@ -792,17 +785,17 @@ lvgl:
                   pad_all: 0
                   widgets:
                     - label:
-                        id: sw_rs1_lbl_icon
+                        id: last_feed_icon
                         x: 4
                         y: 7
                         width: 20
                         height: 18
-                        text: "\uF043"
-                        text_font: font_kucuk
+                        text: "\U000F04F9"
+                        text_font: mdi_icons
                         text_align: CENTER
                         text_color: 0x10B981
                     - label:
-                        id: anasayfa_saat
+                        id: last_feed_value
                         x: 30
                         y: 24
                         width: 53
@@ -813,7 +806,7 @@ lvgl:
                         long_mode: CLIP
                         text_font: montserrat_18
                     - label:
-                        id: anasayfa_son_yemleme_label
+                        id: last_feed_label
                         x: 10
                         y: 10
                         width: 90
@@ -823,134 +816,103 @@ lvgl:
                         text_align: CENTER
                         long_mode: CLIP
                         text_font: montserrat_10
-              - obj:
-                  id: mb_mb1_card
-                  x: 126
-                  y: 172
-                  width: 110
-                  height: 56
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0x3B82F6
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: mb_mb1_lbl_value
-                        x: 6
-                        y: 6
-                        width: 90
-                        height: 14
-                        text: "-42 dBm"
-                        text_color: 0x3B82F6
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_10
-                    - label:
-                        id: mb_mb1_lbl_name
-                        x: 6
-                        y: 19
-                        width: 90
-                        height: 12
-                        text: "WiFi Signal"
-                        text_color: 0x8E9FB8
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_10
-                    - bar:
-                        id: mb_mb1_bar
-                        x: 6
-                        y: 39
-                        width: 90
-                        height: 4
-                        value: 78
-                        min_value: 0
-                        max_value: 100
-                        indicator:
-                          bg_color: 0x3B82F6
-                          radius: 2
-                        bg_color: 0x0F1929
-                        radius: 9999
-              - obj:
-                  id: dm_dm_card
+              - button:
+                  id: btn_feed_now
                   x: 4
                   y: 232
                   width: 232
-                  height: 84
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
+                  height: 56
+
+                  bg_color: 0x10B981
                   radius: 16
-                  shadow_width: 5
-                  shadow_color: 0xFBBF24
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
+                  border_width: 0
+
                   widgets:
                     - label:
-                        id: dm_dm_lbl_room
-                        x: 20
-                        y: 12
-                        width: 162
-                        height: 20
-                        text: "Desk Lamp"
-                        text_color: 0xF1F5F9
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: font_kucuk
-                    - label:
-                        id: dm_dm_lbl_pct
-                        x: 141
-                        y: 7
-                        width: 80
-                        height: 28
-                        text: "65%"
-                        text_color: 0xFBBF24
-                        text_align: RIGHT
-                        long_mode: CLIP
-                        text_font: font_buyuk
-                    - label:
-                        id: dm_dm_lbl_sub
-                        x: 20
-                        y: 38
-                        width: 202
-                        height: 14
-                        text: "Brightness"
-                        text_color: 0x8E9FB8
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: montserrat_10
-                    - slider:
-                        id: dm_dm_slider
-                        x: 20
-                        y: 58
-                        width: 204
-                        height: 16
-                        value: 31
-                        min_value: 0
-                        max_value: 100
-                        bg_color: 0x0F1929
-                        border_width: 0
-                        radius: 9999
-                        bg_opa: 100%
-                        knob:
-                          bg_color: 0xFFFFFF
-                          border_width: 0
-                          radius: 50
-                          pad_all: 0
-                        indicator:
-                          bg_color: 0xFBBF24
-                          bg_opa: 80%
-                          radius: 8
-                        animated: true
+                        align: CENTER
+                        text: "YEM VER"
+                        text_color: 0xFFFFFF
+                        text_font: font_orta
+
+                  on_click:
+                    then:
+                      - script.execute: yemleme_script
+              - obj:
+                  id: navbar
+                  x: 0
+                  y: 284
+                  width: 240
+                  height: 36
+
+                  bg_color: 0x070E1B
+                  border_width: 0
+                  radius: 0
+
+                  widgets:
+
+                    - button:
+                        x: 0
+                        y: 0
+                        width: 60
+                        height: 36
+                        bg_opa: TRANSP
+
+                        widgets:
+                          - label:
+                              align: CENTER
+                              text: "\U000F02DC"
+                              text_font: mdi_icons
+
+                    - button:
+                        x: 60
+                        y: 0
+                        width: 60
+                        height: 36
+                        bg_opa: TRANSP
+
+                        on_click:
+                          then:
+                            - lvgl.page.show: page_home
+
+                        widgets:
+                          - label:
+                              align: CENTER
+                              text: "\U000F0F4B"
+                              text_font: mdi_icons
+
+                    - button:
+                        x: 120
+                        y: 0
+                        width: 60
+                        height: 36
+                        bg_opa: TRANSP
+
+                        on_click:
+                          then:
+                            - lvgl.page.show: page_log
+
+                        widgets:
+                          - label:
+                              align: CENTER
+                              text: "\U000F0C9E"
+                              text_font: mdi_icons
+
+                    - button:
+                        x: 180
+                        y: 0
+                        width: 60
+                        height: 36
+                        bg_opa: TRANSP
+
+                        on_click:
+                          then:
+                            - lvgl.page.show: page_set
+
+                        widgets:
+                          - label:
+                              align: CENTER
+                              text: "\U000F0493"
+                              text_font: mdi_icons
 
     # ========================================
     # CHART PAGE (Analytics)
@@ -1108,7 +1070,7 @@ lvgl:
   # ===== NAVBAR (Top Layer - Always on top) =====
   
 ####
-    - id: canvas_3
+    - id: page_boot
       bg_color: 0x0B0F14
       pad_all: 0
       widgets:
@@ -1195,6 +1157,14 @@ interval:
                      sntp.year, sntp.month, sntp.day_of_month,
                      sntp.hour, sntp.minute, sntp.second);
           }
+  - interval: 1s
+    then:
+      - lvgl.label.update:
+          id: clock_value
+          text:
+            format: "%s"
+            args:
+              - 'id(internet_saati).now().strftime("%H:%M").c_str()'
 # ============================================================
 # RGB LED
 # ============================================================
@@ -1289,7 +1259,7 @@ sensor:
     on_value:
       then:
         - lvgl.label.update:
-            id: ms1_ms_value
+            id: water_temp_value
             text:
               format: "%.1f"
               args: ['x']
@@ -1385,9 +1355,9 @@ binary_sensor:
               lambda: 'return x;'
             then:
               - lvgl.label.update:
-                  id: hdr_shb_wifi
+                  id: header_wifi_icon
                   text: "\U000F05A9"  # mdi-wifi
             else:
               - lvgl.label.update:
-                  id: hdr_shb_wifi
+                  id: header_wifi_icon
                   text: "\U000F05AA"  # mdi-wifi-off

@@ -381,7 +381,7 @@ font:
 # LVGL
 #####
 lvgl:
-  displays: ekranim
+  displays: "ekranim"
   theme:
     
     # Kart stili (tum widgetler icin temel)

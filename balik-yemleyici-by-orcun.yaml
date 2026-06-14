@@ -1231,14 +1231,30 @@ sensor:
               format: "%.1f"
               args: ['x']
   - platform: vl53l0x
-    name: "Mesafe Sensörü"
+    name: "Yem Seviyesi Sensörü"
     address: 0x29
     i2c_id: saat_tutucu
-    update_interval: 10s
-    long_range: false
+    update_interval: 5s
+    long_range: false     # Yem kutusu için kısa mesafe daha stabil ve hızlıdır
+    timeout: 100ms        # I2C meşguliyetinden dolayı kilitlenmeleri önlemek için varsayılan 10ms artırıldı
+    
     filters:
-      - filter_out: nan
+      - filter_out: nan   # Kilitlenme veya hatalı okumadan dönen 'nan' değerlerini çöpe atar
+      
+      # Metre (m) olarak gelen standart değeri Milimetre (mm) cinsine çevirir
+      - multiply: 1000.0
+      
+      # Yem yüzeyi pürüzlü olduğu için anlık sıçramaları engeller.
+      # Son 5 ölçümü sıraya dizer, en küçük ve en büyük saçma değerleri atıp 
+      # tam ortadaki en mantıklı değeri (medyan) sisteme iletir.
+      - median:
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+          
+      # İsteğe bağlı: Değer çok sık değişmesin isterseniz eski 30s ortalamanızı da medyanın altına ekleyebilirsiniz
       - throttle_average: 30s
+
     on_value:
       then:
         - lvgl.label.update:
@@ -1246,7 +1262,7 @@ sensor:
             text:
               format: "%.0f mm"
               args:
-                - x
+                - x  # multiply: 1000.0 filtresi sayesinde x artık tam olarak milimetre!
 
   - platform: uptime
     name: "Uptime Sensor"

@@ -24,7 +24,7 @@ psram:
   speed: 80MHz
 
 logger:
-  level: VERY_VERBOSE
+  level: DEBUG
 
 api:
   encryption:

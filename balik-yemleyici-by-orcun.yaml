@@ -140,6 +140,7 @@ i2c:
     scl: GPIO17  # GPIO9 yerine
     scan: true
     id: saat_tutucu
+    frequency: 100kHz
     
 
 output:

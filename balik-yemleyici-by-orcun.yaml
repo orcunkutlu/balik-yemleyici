@@ -1091,7 +1091,8 @@ touchscreen:
   interrupt_pin: GPIO16
   update_interval: 50ms
   transform:
-    mirror_x: true
+    mirror_x: false
+    mirror_y: false
 
   on_touch:
     - lambda: |-

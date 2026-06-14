@@ -45,6 +45,12 @@ time:
       - time.google.com
       - time.cloudflare.com
       - 0.tr.pool.ntp.org
+  - platform: ds3231
+    id: rtc_saati
+    address: 0x68
+    i2c_id: saat_tutucu
+    time_id: internet_saati
+    update_interval: 1min
 
 web_server:
   port: 80

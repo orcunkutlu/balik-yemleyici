@@ -379,10 +379,169 @@ lvgl:
   id: lvgl_id
   displays: ekranim
   theme:
+    buttonmatrix:
+      bg_color: 0x070E1B
+      bg_opa: COVER
+      border_width: 0
+      pad_all: 0
+      pad_row: 0
+      pad_column: 0
+      items:
+        bg_color: 0x070E1B
+        bg_opa: 95%
+        border_width: 0
+        radius: 0
+        pad_all: 0
+        text_color: 0x8E9FB8      # Inactive (pasif) renk — gri-mavi
+        text_font: mdi_icons
+        # PRESSED (basılı anlık)
+        pressed:
+          bg_color: 0x0F172A
+          bg_opa: COVER
+        # CHECKED/ACTIVE (aktif sayfa) — ŞAHANE RENK
+        checked:
+          bg_color: 0x1E293B
+          bg_opa: COVER
+          text_color: 0xFBBF24     # Amber/Gold — aktif sayfa rengi ✨
     button:
         bg_color: 0x1976D2
         radius: 12
         text_color: 0xFFFFFF
+  top_layer:
+    bg_opa: TRANSP               # Şeffaf arka plan, sayfalar görünsün
+    pad_all: 0
+    
+    widgets:
+      - obj:
+          id: navbar_container
+          align: BOTTOM_MID       # Ekran alt orta
+          x: 0
+          y: 0
+          width: 240
+          height: 40
+          bg_color: 0x070E1B
+          bg_opa: 95%
+          border_width: 0
+          radius: 0
+          pad_all: 0
+          
+          widgets:
+            - buttonmatrix:
+                id: footer_nav
+                x: 0
+                y: 0
+                width: 240
+                height: 40
+                align: CENTER
+                bg_color: 0x070E1B
+                border_width: 0
+                pad_all: 0
+                pad_row: 0
+                pad_column: 0
+                one_checked: true
+                
+                rows:
+                  - buttons:
+                      - id: nav_home
+                        text: "\U000F02DC"      # mdi-clock
+                        width: 1
+                        control:
+                          checkable: true
+                          checked: true           # Boot'ta HOME aktif
+                        on_press:
+                          then:
+                            - lvgl.page.show: page_home
+                            - lvgl.matrix.button.update:
+                                id: nav_home
+                                control:
+                                  checked: true
+                            - lvgl.matrix.button.update:
+                                id: nav_feed
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_log
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_set
+                                control:
+                                  checked: false
+                                    
+                      - id: nav_feed
+                        text: "\U000F0F4B"      # mdi-food
+                        width: 1
+                        control:
+                          checkable: true
+                        on_press:
+                          then:
+                            - lvgl.page.show: page_feed
+                            - lvgl.matrix.button.update:
+                                id: nav_home
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_feed
+                                control:
+                                  checked: true
+                            - lvgl.matrix.button.update:
+                                id: nav_log
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_set
+                                control:
+                                  checked: false
+                                    
+                      - id: nav_log
+                        text: "\U000F0C9E"      # mdi-chart-box
+                        width: 1
+                        control:
+                          checkable: true
+                        on_press:
+                          then:
+                            - lvgl.page.show: page_log
+                            - lvgl.matrix.button.update:
+                                id: nav_home
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_feed
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_log
+                                control:
+                                  checked: true
+                            - lvgl.matrix.button.update:
+                                id: nav_set
+                                control:
+                                  checked: false
+                                    
+                      - id: nav_set
+                        text: "\U000F0493"      # mdi-cog
+                        width: 1
+                        control:
+                          checkable: true
+                        on_press:
+                          then:
+                            - lvgl.page.show: page_settings
+                            - lvgl.matrix.button.update:
+                                id: nav_home
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_feed
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_log
+                                control:
+                                  checked: false
+                            - lvgl.matrix.button.update:
+                                id: nav_set
+                                control:
+                                  checked: true
   pages:
     - id: page_home
       bg_color: 0x111827
@@ -749,98 +908,40 @@ lvgl:
                   on_click:
                     then:
                       - script.execute: yemleme_script
-              - obj:
-                  id: navbar
-                  x: 0
-                  y: 280
-                  width: 240
-                  height: 40
-                  bg_color: 0x070E1B
-                  border_width: 0
-                  radius: 0
-                  pad_all: 0
-                  scrollbar_mode: "OFF"
-                  
-                  widgets:
-                    - buttonmatrix:
-                        id: footer_nav
-                        x: 0
-                        y: 0
-                        width: 240
-                        height: 40
-                        bg_color: 0x070E1B
-                        border_width: 0
-                        pad_all: 0
-                        pad_row: 0
-                        pad_column: 0
-                        one_checked: true
-                        
-                        items:
-                          text_font: mdi_icons
-                          bg_opa: 95%
-                          border_width: 0
-                          radius: 0
-                          pad_all: 0
-                          bg_color: 0x070E1B
-                          checked:
-                            bg_color: 0x1E293B
-                            bg_opa: COVER
-                          pressed:
-                            bg_color: 0x0F172A
-                            bg_opa: COVER
-                          
-                        rows:
-                          - buttons:
-                              - id: nav_home
-                                text: "\U000F02DC"
-                                width: 1
-                                control:
-                                  checkable: true
-                                  checked: true
-
-                              - id: nav_feed
-                                text: "\U000F0F4B"
-                                width: 1
-                                control:
-                                  checkable: true
-                            
-                              - id: nav_log
-                                text: "\U000F0C9E"
-                                width: 1
-                                control:
-                                  checkable: true
-                              - id: nav_set
-                                text: "\U000F0493"
-                                width: 1
-                                control:
-                                  checkable: true
-                        on_click:
-                          then:
-                            - logger.log:
-                                level: INFO
-                                format: "Matrix clicked, button index: %d"
-                                args: [ x ]
-                            - if:
-                                condition:
-                                  lambda: 'return x == id(nav_home);'
-                                then:
-                                  - lvgl.page.show: page_home
-                            - if:
-                                condition:
-                                  lambda: 'return x == id(nav_feed);'
-                                then:
-                                  - lvgl.page.show: page_feed
-                            - if:
-                                condition:
-                                  lambda: 'return x == id(nav_log);'
-                                then:
-                                  - lvgl.page.show: page_log
-                            - if:
-                                condition:
-                                  lambda: 'return x == id(nav_set);'
-                                then:
-                                  - lvgl.page.show: page_settings
     - id: page_feed
+
+      widgets:
+
+        - label:
+            text: "BESLEME"
+            align: TOP_MID
+            y: 10
+
+        - label:
+            text: "08:00"
+            align: CENTER
+            y: -40
+
+        - label:
+            id: distance_value
+            text: "18:00"
+            align: CENTER
+            y: -10
+
+        - button:
+            width: 180
+            height: 60
+            align: CENTER
+            y: 60
+
+            widgets:
+              - label:
+                  text: "TEST BESLE"
+
+            on_click:
+              - logger.log: "TEST FEED"
+
+    - id: page_log
 
       widgets:
 
@@ -858,7 +959,7 @@ lvgl:
             text: "18:00"
             align: CENTER
             y: -10
-
+            
         - button:
             width: 180
             height: 60
@@ -871,97 +972,7 @@ lvgl:
 
             on_click:
               - logger.log: "TEST FEED"
-        - obj:
-            id: navbar
-            x: 0
-            y: 280
-            width: 240
-            height: 40
-            bg_color: 0x070E1B
-            border_width: 0
-            radius: 0
-            pad_all: 0
-            scrollbar_mode: "OFF"
-            
-            widgets:
-              - buttonmatrix:
-                  id: footer_nav
-                  x: 0
-                  y: 0
-                  width: 240
-                  height: 40
-                  bg_color: 0x070E1B
-                  border_width: 0
-                  pad_all: 0
-                  pad_row: 0
-                  pad_column: 0
-                  one_checked: true
-                  
-                  items:
-                    text_font: mdi_icons
-                    bg_opa: 95%
-                    border_width: 0
-                    radius: 0
-                    pad_all: 0
-                    bg_color: 0x070E1B
-                    checked:
-                      bg_color: 0x1E293B
-                      bg_opa: COVER
-                    pressed:
-                      bg_color: 0x0F172A
-                      bg_opa: COVER
-                    
-                  rows:
-                    - buttons:
-                        - id: nav_home
-                          text: "\U000F02DC"
-                          width: 1
-                          control:
-                            checkable: true
-                            checked: true
 
-                        - id: nav_feed
-                          text: "\U000F0F4B"
-                          width: 1
-                          control:
-                            checkable: true
-                      
-                        - id: nav_log
-                          text: "\U000F0C9E"
-                          width: 1
-                          control:
-                            checkable: true
-                        - id: nav_set
-                          text: "\U000F0493"
-                          width: 1
-                          control:
-                            checkable: true
-                  on_click:
-                    then:
-                      - logger.log:
-                          level: INFO
-                          format: "Matrix clicked, button index: %d"
-                          args: [ x ]
-                      - if:
-                          condition:
-                            lambda: 'return x == id(nav_home);'
-                          then:
-                            - lvgl.page.show: page_home
-                      - if:
-                          condition:
-                            lambda: 'return x == id(nav_feed);'
-                          then:
-                            - lvgl.page.show: page_feed
-                      - if:
-                          condition:
-                            lambda: 'return x == id(nav_log);'
-                          then:
-                            - lvgl.page.show: page_log
-                      - if:
-                          condition:
-                            lambda: 'return x == id(nav_set);'
-                          then:
-                            - lvgl.page.show: page_settings
     - id: page_settings
 
       widgets:
@@ -990,97 +1001,7 @@ lvgl:
             widgets:
               - label:
                   text: "SISTEM"    
-        - obj:
-            id: navbar
-            x: 0
-            y: 280
-            width: 240
-            height: 40
-            bg_color: 0x070E1B
-            border_width: 0
-            radius: 0
-            pad_all: 0
-            scrollbar_mode: "OFF"
-            
-            widgets:
-              - buttonmatrix:
-                  id: footer_nav
-                  x: 0
-                  y: 0
-                  width: 240
-                  height: 40
-                  bg_color: 0x070E1B
-                  border_width: 0
-                  pad_all: 0
-                  pad_row: 0
-                  pad_column: 0
-                  one_checked: true
-                  
-                  items:
-                    text_font: mdi_icons
-                    bg_opa: 95%
-                    border_width: 0
-                    radius: 0
-                    pad_all: 0
-                    bg_color: 0x070E1B
-                    checked:
-                      bg_color: 0x1E293B
-                      bg_opa: COVER
-                    pressed:
-                      bg_color: 0x0F172A
-                      bg_opa: COVER
-                    
-                  rows:
-                    - buttons:
-                        - id: nav_home
-                          text: "\U000F02DC"
-                          width: 1
-                          control:
-                            checkable: true
-                            checked: true
 
-                        - id: nav_feed
-                          text: "\U000F0F4B"
-                          width: 1
-                          control:
-                            checkable: true
-                      
-                        - id: nav_log
-                          text: "\U000F0C9E"
-                          width: 1
-                          control:
-                            checkable: true
-                        - id: nav_set
-                          text: "\U000F0493"
-                          width: 1
-                          control:
-                            checkable: true
-                  on_click:
-                    then:
-                      - logger.log:
-                          level: INFO
-                          format: "Matrix clicked, button index: %d"
-                          args: [ x ]
-                      - if:
-                          condition:
-                            lambda: 'return x == id(nav_home);'
-                          then:
-                            - lvgl.page.show: page_home
-                      - if:
-                          condition:
-                            lambda: 'return x == id(nav_feed);'
-                          then:
-                            - lvgl.page.show: page_feed
-                      - if:
-                          condition:
-                            lambda: 'return x == id(nav_log);'
-                          then:
-                            - lvgl.page.show: page_log
-                      - if:
-                          condition:
-                            lambda: 'return x == id(nav_set);'
-                          then:
-                            - lvgl.page.show: page_settings
 
     - id: page_boot
       bg_color: 0x0B0F14

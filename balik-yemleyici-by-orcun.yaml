@@ -18,19 +18,13 @@ esp32:
   framework:
     type: esp-idf
     
-external_components:
-  - source:
-      type: local
-      path: components
-    components: [ ds3231 ]
-    refresh: 0d
+
 psram:
   mode: octal
   speed: 80MHz
 
 logger:
-  level: WARN
-  baud_rate: 115200
+  level: VERY_VERBOSE
 
 api:
   encryption:
@@ -51,13 +45,6 @@ time:
       - time.google.com
       - time.cloudflare.com
       - 0.tr.pool.ntp.org
-
-  - platform: ds3231
-    id: rtc_saati
-    address: 0x68
-    i2c_id: saat_tutucu
-    time_id: internet_saati
-    update_interval: 1min
 
 web_server:
   port: 80
@@ -1007,24 +994,7 @@ script:
       - lambda: |-
           id(feeding_now) = false;
 interval:
-  - interval: 30s
-    then:
-      - lambda: |-
-          auto rtc = id(rtc_saati).now();
-          if (rtc.is_valid()) {
-            ESP_LOGI("DS3231_LAMBDA", "RTC Saat: %04d-%02d-%02d %02d:%02d:%02d | Timestamp: %ld",
-                     rtc.year, rtc.month, rtc.day_of_month,
-                     rtc.hour, rtc.minute, rtc.second, rtc.timestamp);
-          } else {
-            ESP_LOGW("DS3231_LAMBDA", "RTC saati geçersiz!");
-          }
-          
-          auto sntp = id(internet_saati).now();
-          if (sntp.is_valid()) {
-            ESP_LOGI("SNTP_LAMBDA", "SNTP Saat: %04d-%02d-%02d %02d:%02d:%02d",
-                     sntp.year, sntp.month, sntp.day_of_month,
-                     sntp.hour, sntp.minute, sntp.second);
-          }
+
   - interval: 1s
     then:
       - lvgl.label.update:
@@ -1116,21 +1086,21 @@ touchscreen:
   platform: xpt2046
   id: ekranim_touch
   cs_pin: GPIO15
-  update_interval: 100ms
   spi_id: tft_spi
   threshold: 400
   interrupt_pin: GPIO16
+  update_interval: 50ms
   transform:
-    mirror_y: true
+    mirror_x: true
 
   on_touch:
     - lambda: |-
-        ESP_LOGW("TOUCH", "x=%d y=%d | raw=%d,%d", 
-                 touch.x, touch.y, touch.x_raw, touch.y_raw);
-  on_release:
-    - lambda: |-
-        id(touch_debug) = false;
-        ESP_LOGI("TOUCH_DEBUG", "RELEASE");
+          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+              touch.x,
+              touch.y,
+              touch.x_raw,
+              touch.y_raw
+              );
   calibration:
     x_min: 280
     x_max: 3860
@@ -1235,7 +1205,7 @@ display:
       height: 320
     invert_colors: false
     auto_clear_enabled: false
-    update_interval: 16ms
+    update_interval: never
 
 # ============================================================
 # METİN SENSÖRLER

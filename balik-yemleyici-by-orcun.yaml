@@ -1122,24 +1122,15 @@ touchscreen:
   interrupt_pin: GPIO16
   transform:
     mirror_y: true
+
   on_touch:
     - lambda: |-
-        id(touch_x) = touch.x;
-        id(touch_y) = touch.y;
-        id(touch_debug) = true;
-        ESP_LOGI("TOUCH_DEBUG", "TOUCH -> X: %d, Y: %d | Raw: (%d, %d)", 
-                touch.x, touch.y, touch.x_raw, touch.y_raw);
-    - light.turn_on:
-        id: rgb_led
-        red: 100%
-        green: 0%
-        blue: 0%
-    
+        ESP_LOGW("TOUCH", "x=%d y=%d | raw=%d,%d", 
+                 touch.x, touch.y, touch.x_raw, touch.y_raw);
   on_release:
     - lambda: |-
         id(touch_debug) = false;
         ESP_LOGI("TOUCH_DEBUG", "RELEASE");
-    - light.turn_off: rgb_led
   calibration:
     x_min: 280
     x_max: 3860

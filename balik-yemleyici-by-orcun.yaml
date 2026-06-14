@@ -1103,10 +1103,10 @@ touchscreen:
               touch.y_raw
               );
   calibration:
-    x_min: 280
-    x_max: 3860
-    y_min: 340
-    y_max: 3860
+    x_min: 450
+    x_max: 3500
+    y_min: 550
+    y_max: 3770
 
 # ============================================================
 # DS18B20

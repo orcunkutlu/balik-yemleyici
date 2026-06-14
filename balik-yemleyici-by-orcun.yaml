@@ -10,6 +10,7 @@ esphome:
       - lvgl.page.show: page_boot
       - delay: 6s
       - lvgl.page.show: page_home
+      - lvgl.widget.show: navbar_container
 
 esp32:
   variant: esp32s3
@@ -424,7 +425,7 @@ lvgl:
           border_width: 0
           radius: 0
           pad_all: 0
-          
+          hidden: true
           widgets:
             - buttonmatrix:
                 id: footer_nav
@@ -1232,8 +1233,11 @@ sensor:
     name: "Mesafe Sensörü"
     address: 0x29
     i2c_id: saat_tutucu
-    update_interval: 5s
+    update_interval: 10s
     long_range: false
+    filters:
+      - filter_out: nan
+      - throttle_average: 30s
     on_value:
       then:
         - lvgl.label.update:

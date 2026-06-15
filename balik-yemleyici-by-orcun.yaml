@@ -135,6 +135,10 @@ button:
                   );
                   id(son_yemleme_saati) = saat_buffer;
 
+  - platform: restart
+    id: system_restart_btn
+    name: "Cihazı Yeniden Başlat"
+
 i2c:
   - sda: GPIO8
     scl: GPIO17  # GPIO9 yerine
@@ -858,6 +862,44 @@ lvgl:
                         long_mode: CLIP
                         text_font: montserrat_10
               - obj:
+                  id: home_feed_level_card
+                  x: 126
+                  y: 146
+                  width: 110
+                  height: 56
+                  bg_color: 0x070E1B
+                  border_width: 1
+                  border_color: 0x162038
+                  radius: 12
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: home_feed_pct_txt
+                        x: 8
+                        y: 6
+                        text: "%--"
+                        text_color: 0x3B82F6
+                        text_font: font_kucuk
+                    - label:
+                        x: 45
+                        y: 6
+                        text: "Depo"
+                        text_color: 0x8E9FB8
+                        text_font: font_kucuk
+                    - bar:
+                        id: home_feed_bar
+                        x: 8
+                        y: 34
+                        width: 94
+                        height: 10
+                        min_value: 0
+                        max_value: 100
+                        value: 0
+                        bg_color: 0x1E293B
+                        indicator:
+                          bg_color: 0x3B82F6
+                          radius: 4
+              - obj:
                   id: yem_feed_card
                   x: 4
                   y: 236
@@ -911,98 +953,350 @@ lvgl:
                     then:
                       - script.execute: yemleme_script
     - id: page_feed
-
+      bg_color: 0x111827
+      pad_all: 0
       widgets:
-
-        - label:
-            text: "BESLEME"
-            align: TOP_MID
-            y: 10
-
-        - label:
-            text: "08:00"
-            align: CENTER
-            y: -40
-
-        - label:
-            id: distance_value
-            text: "18:00"
-            align: CENTER
-            y: -10
-
-        - button:
-            width: 180
-            height: 60
-            align: CENTER
-            y: 60
-
+        - obj:
+            x: 0
+            y: 0
+            width: 240
+            height: 320
+            bg_color: 0x08142D
+            scrollbar_mode: "OFF"
+            border_width: 0
+            radius: 0
+            pad_all: 0
             widgets:
-              - label:
-                  text: "TEST BESLE"
+              # --- HEADER ---
+              - obj:
+                  x: 0
+                  y: 0
+                  width: 240
+                  height: 42
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        x: 14
+                        y: 12
+                        text: "Zamanlayıcı Planı"
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
 
-            on_click:
-              - logger.log: "TEST FEED"
+              # --- PROGRAM SIRA 1 CARD ---
+              - obj:
+                  id: card_feed1
+                  x: 4
+                  y: 48
+                  width: 232
+                  height: 46
+                  bg_color: 0x070E1B
+                  border_width: 1
+                  border_color: 0x162038
+                  radius: 12
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        x: 12
+                        y: 13
+                        text: "\U000F02DC" # mdi-clock
+                        text_font: mdi_icons
+                        text_color: 0x3B82F6
+                    - label:
+                        id: txt_feed1_title
+                        x: 42
+                        y: 6
+                        text: "Yemleme Programı 1"
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
+                    - label:
+                        id: status_feed1
+                        x: 42
+                        y: 24
+                        text: "Yükleniyor..."
+                        text_color: 0x8E9FB8
+                        text_font: font_kucuk
+                  on_click:
+                    then:
+                      - switch.toggle: yemleme_1_aktif
+
+              # --- PROGRAM SIRA 2 CARD ---
+              - obj:
+                  id: card_feed2
+                  x: 4
+                  y: 98
+                  width: 232
+                  height: 46
+                  bg_color: 0x070E1B
+                  border_width: 1
+                  border_color: 0x162038
+                  radius: 12
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        x: 12
+                        y: 13
+                        text: "\U000F02DC"
+                        text_font: mdi_icons
+                        text_color: 0x3B82F6
+                    - label:
+                        id: txt_feed2_title
+                        x: 42
+                        y: 6
+                        text: "Yemleme Programı 2"
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
+                    - label:
+                        id: status_feed2
+                        x: 42
+                        y: 24
+                        text: "Yükleniyor..."
+                        text_color: 0x8E9FB8
+                        text_font: font_kucuk
+                  on_click:
+                    then:
+                      - switch.toggle: yemleme_2_aktif
+
+              # --- PROGRAM SIRA 3 CARD ---
+              - obj:
+                  id: card_feed3
+                  x: 4
+                  y: 148
+                  width: 232
+                  height: 46
+                  bg_color: 0x070E1B
+                  border_width: 1
+                  border_color: 0x162038
+                  radius: 12
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        x: 12
+                        y: 13
+                        text: "\U000F02DC"
+                        text_font: mdi_icons
+                        text_color: 0x3B82F6
+                    - label:
+                        id: txt_feed3_title
+                        x: 42
+                        y: 6
+                        text: "Yemleme Programı 3"
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
+                    - label:
+                        id: status_feed3
+                        x: 42
+                        y: 24
+                        text: "Yükleniyor..."
+                        text_color: 0x8E9FB8
+                        text_font: font_kucuk
+                  on_click:
+                    then:
+                      - switch.toggle: yemleme_3_aktif
+
+              # --- ÖZET ÖLÇÜM PANELİ (DÖNGÜ VE DURUM) ---
+              - obj:
+                  x: 4
+                  y: 200
+                  width: 232
+                  height: 40
+                  bg_color: 0x0F172A
+                  border_width: 1
+                  border_color: 0x1E293B
+                  radius: 12
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: txt_summary_loop
+                        x: 12
+                        y: 11
+                        text: "Döngü: --"
+                        text_color: 0xFBBF24 # Amber accent
+                        text_font: font_kucuk
 
     - id: page_log
-
+      bg_color: 0x111827
+      pad_all: 0
       widgets:
-
-        - label:
-            text: "BESLEME"
-            align: TOP_MID
-            y: 10
-
-        - label:
-            text: "08:00"
-            align: CENTER
-            y: -40
-
-        - label:
-            text: "18:00"
-            align: CENTER
-            y: -10
-            
-        - button:
-            width: 180
-            height: 60
-            align: CENTER
-            y: 60
-
+        - obj:
+            x: 0
+            y: 0
+            width: 240
+            height: 320
+            bg_color: 0x08142D
+            scrollbar_mode: "OFF"
+            border_width: 0
+            radius: 0
+            pad_all: 0
             widgets:
-              - label:
-                  text: "TEST BESLE"
+              # --- HEADER ---
+              - obj:
+                  x: 0
+                  y: 0
+                  width: 240
+                  height: 42
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 0
+                  radius: 0
+                  widgets:
+                    - label:
+                        x: 14
+                        y: 12
+                        text: "Sistem Kayıtları"
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
+              
+              # --- LOG KARTI 1: SON BESLEME DETAYI ---
+              - obj:
+                  x: 4
+                  y: 48
+                  width: 232
+                  height: 60
+                  bg_color: 0x070E1B
+                  border_width: 1
+                  border_color: 0x162038
+                  radius: 12
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        x: 10
+                        y: 18
+                        text: "\U000F023A"
+                        text_font: mdi_icons
+                        text_color: 0x10B981
+                    - label:
+                        x: 40
+                        y: 10
+                        text: "Son Başarılı Yemleme"
+                        text_color: 0x8E9FB8
+                        text_font: font_kucuk
+                    - label:
+                        id: log_last_feed
+                        x: 40
+                        y: 30
+                        text: "--:--"
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
 
-            on_click:
-              - logger.log: "TEST FEED"
+              # --- LOG KARTI 2: UPTIME (ÇALIŞMA SÜRESİ) ---
+              - obj:
+                  x: 4
+                  y: 116
+                  width: 232
+                  height: 60
+                  bg_color: 0x070E1B
+                  border_width: 1
+                  border_color: 0x162038
+                  radius: 12
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        x: 10
+                        y: 18
+                        text: "\U000F02DC"
+                        text_font: mdi_icons
+                        text_color: 0x818CF8
+                    - label:
+                        x: 40
+                        y: 10
+                        text: "Sistem Çalışma Süresi"
+                        text_color: 0x8E9FB8
+                        text_font: font_kucuk
+                    - label:
+                        id: log_uptime
+                        x: 40
+                        y: 30
+                        text: "Hesaplanıyor..."
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
 
     - id: page_settings
-
+      bg_color: 0x111827
+      pad_all: 0
       widgets:
-
-        - label:
-            text: "AYARLAR"
-            align: TOP_MID
-            y: 10
-
-        - button:
-            width: 200
-            height: 50
-            align: TOP_MID
-            y: 60
-
+        - obj:
+            x: 0
+            y: 0
+            width: 240
+            height: 320
+            bg_color: 0x08142D
+            scrollbar_mode: "OFF"
+            border_width: 0
+            radius: 0
+            pad_all: 0
             widgets:
-              - label:
-                  text: "WIFI"
+              # --- HEADER ---
+              - obj:
+                  x: 0
+                  y: 0
+                  width: 240
+                  height: 42
+                  bg_color: 0x070E1B
+                  bg_opa: 95%
+                  border_width: 0
+                  radius: 0
+                  widgets:
+                    - label:
+                        x: 14
+                        y: 12
+                        text: "Cihaz Ayarları"
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
+              
+              # --- WIFI BİLGİ KARTI ---
+              - obj:
+                  x: 4
+                  y: 48
+                  width: 232
+                  height: 65
+                  bg_color: 0x070E1B
+                  border_width: 1
+                  border_color: 0x162038
+                  radius: 16
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        x: 14
+                        y: 20
+                        text: "\U000F05A9"
+                        text_font: mdi_icons
+                        text_color: 0x10B981
+                    - label:
+                        x: 50
+                        y: 12
+                        text: "Ağ (IP Adresi)"
+                        text_color: 0x8E9FB8
+                        text_font: font_kucuk
+                    - label:
+                        id: settings_ip
+                        x: 50
+                        y: 34
+                        text: "192.168.1.69"
+                        text_color: 0xF1F5F9
+                        text_font: font_kucuk
 
-        - button:
-            width: 200
-            height: 50
-            align: TOP_MID
-            y: 120
-
-            widgets:
-              - label:
-                  text: "SISTEM"    
+              # --- YENİDEN BAŞLAT BUTONU ---
+              - button:
+                  x: 4
+                  y: 121
+                  width: 232
+                  height: 50
+                  bg_color: 0xEF4444 # Kırmızı
+                  bg_opa: COVER
+                  radius: 12
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "SİSTEMİ YENİDEN BAŞLAT"
+                        text_color: 0xFFFFFF
+                        text_font: font_kucuk
+                  on_click:
+                    then:
+                      - button.press: system_restart_btn # Bunun için aşağıda bir button tanımlaması gerekecek
 
 
     - id: page_boot
@@ -1055,12 +1349,10 @@ lvgl:
                   text_font: font_kucuk
 
 script:
-
   - id: yemleme_script
-    mode: restart
+    mode: single
 
     then:
-
       - lambda: |-
           id(feeding_now) = true;
 
@@ -1068,47 +1360,149 @@ script:
           id: rgb_led
           blue: 100%
 
-      - delay: 900ms
+      - servo.write:
+          id: yemleyici_servo
+          level: -100%
+
+      - delay: 300ms
+
+      - servo.write:
+          id: yemleyici_servo
+          level: !lambda "return id(servo_acisi).state / 100.0;"
+
+      - delay: 1000ms
+
+      - servo.write:
+          id: yemleyici_servo
+          level: -100%
+
+      - delay: 500ms
+
+      - servo.write:
+          id: yemleyici_servo
+          level: -70%
+
+      - delay: 150ms
+
+      - servo.write:
+          id: yemleyici_servo
+          level: -100%
+
+      - delay: 150ms
+
+      - servo.detach: yemleyici_servo
 
       - light.turn_off: rgb_led
 
       - lambda: |-
+
           id(feeding_now) = false;
+          auto now = id(internet_saati).now();
+
+          if (!now.is_valid())
+            return;
+
+          char buffer[32];
+
+          sprintf(
+            buffer,
+            "%02d.%02d %02d:%02d",
+            now.day_of_month,
+            now.month,
+            now.hour,
+            now.minute
+          );
+
+          id(son_yemleme_saati) = buffer;
 interval:
-  - interval: 30s
-    then:
-      - lambda: |-
-          auto rtc = id(rtc_saati).now();
-          if (rtc.is_valid()) {
-            ESP_LOGI("DS3231_LAMBDA", "RTC Saat: %04d-%02d-%02d %02d:%02d:%02d | Timestamp: %ld",
-                     rtc.year, rtc.month, rtc.day_of_month,
-                     rtc.hour, rtc.minute, rtc.second, rtc.timestamp);
-          } else {
-            ESP_LOGW("DS3231_LAMBDA", "RTC saati geçersiz!");
-          }
-          
-          auto sntp = id(internet_saati).now();
-          if (sntp.is_valid()) {
-            ESP_LOGI("SNTP_LAMBDA", "SNTP Saat: %04d-%02d-%02d %02d:%02d:%02d",
-                     sntp.year, sntp.month, sntp.day_of_month,
-                     sntp.hour, sntp.minute, sntp.second);
-          } 
   - interval: 1s
     then:
+      # 1. Ana Ekran Verilerini Canlandırma
       - lvgl.label.update:
           id: clock_value
           text:
             format: "%s"
-            args:
-              - 'id(internet_saati).now().strftime("%H:%M").c_str()'
-  - interval: 60s
-    then:
+            args: ['id(internet_saati).now().strftime("%H:%M").c_str()']
       - lvgl.label.update:
           id: header_datetime
           text:
             format: "%s"
-            args:
-              - 'id(internet_saati).now().strftime("%d.%m.%Y %H:%M").c_str()'
+            args: ['id(internet_saati).now().strftime("%d %b %H:%M").c_str()']
+      - lvgl.label.update:
+          id: date_value
+          text:
+            format: "%s"
+            args: ['id(internet_saati).now().strftime("%d.%m.%Y").c_str()']
+      - lvgl.label.update:
+          id: last_feed_value
+          text: !lambda "return id(son_yemleme_saati).c_str();"
+      - lvgl.label.update:
+          id: next_feed_value
+          text: !lambda "return id(sonraki_yemleme_hesapla).state.c_str();"
+      - lvgl.label.update:
+          id: log_uptime
+          text: !lambda "return id(uptime_sensor_text).state.c_str();"
+
+      # 2. Zamanlayıcı Sayfası (Page Feed) Kartlarının Dinamik Renk ve Metin Güncellemeleri
+      # Zamanlayıcı 1 Kontrolü
+      - lvgl.label.update:
+          id: status_feed1
+          text: !lambda |-
+            char buf[32];
+            sprintf(buf, "Prog 1: %02d:%02d • %s", id(yemleme_sira_1).hour, id(yemleme_sira_1).minute, id(yemleme_1_aktif).state ? "AKTIF" : "PASIF");
+            return {buf};
+      - lvgl.label.update:
+          id: status_feed1
+          text_color: !lambda "return id(yemleme_1_aktif).state ? 0x10B981 : 0x64748B;"
+
+      # Zamanlayıcı 2 Kontrolü
+      - lvgl.label.update:
+          id: status_feed2
+          text: !lambda |-
+            char buf[32];
+            sprintf(buf, "Prog 2: %02d:%02d • %s", id(yemleme_sira_2).hour, id(yemleme_sira_2).minute, id(yemleme_2_aktif).state ? "AKTIF" : "PASIF");
+            return {buf};
+      - lvgl.label.update:
+          id: status_feed2
+          text_color: !lambda "return id(yemleme_2_aktif).state ? 0x10B981 : 0x64748B;"
+
+      # Zamanlayıcı 3 Kontrolü
+      - lvgl.label.update:
+          id: status_feed3
+          text: !lambda |-
+            char buf[32];
+            sprintf(buf, "Prog 3: %02d:%02d • %s", id(yemleme_sira_3).hour, id(yemleme_sira_3).minute, id(yemleme_3_aktif).state ? "AKTIF" : "PASIF");
+            return {buf};
+      - lvgl.label.update:
+          id: status_feed3
+          text_color: !lambda "return id(yemleme_3_aktif).state ? 0x10B981 : 0x64748B;"
+
+      # 3. Arka Planda Çalışan Gerçek Zamanlı Yemleme Tetikleyicisi
+      - lambda: |-
+          auto now = id(internet_saati).now();
+          if (!now.is_valid()) return;
+
+          int current_minute = now.hour * 60 + now.minute;
+          if (current_minute == id(son_tetiklenen_dakika)) return;
+
+          bool execute_feed = false;
+          if (id(yemleme_1_aktif).state && now.hour == id(yemleme_sira_1).hour && now.minute == id(yemleme_sira_1).minute) execute_feed = true;
+          if (id(yemleme_2_aktif).state && now.hour == id(yemleme_sira_2).hour && now.minute == id(yemleme_sira_2).minute) execute_feed = true;
+          if (id(yemleme_3_aktif).state && now.hour == id(yemleme_sira_3).hour && now.minute == id(yemleme_sira_3).minute) execute_feed = true;
+
+          if (execute_feed) {
+            id(son_tetiklenen_dakika) = current_minute;
+            id(yemleme_script).execute();
+          }
+  - interval: 30s
+    then:
+      - lambda: |-
+          auto rtc = id(rtc_saati).now();
+          auto sntp = id(internet_saati).now();
+          if (sntp.is_valid()) {
+            ESP_LOGI("SISTEM", "Zaman Senkronize.");
+          }
+
 # ============================================================
 # RGB LED
 # ============================================================
@@ -1130,24 +1524,20 @@ light:
 # Global Değişkenler
 # ============================================================  
 globals:
-  - id: touch_x
+  - id: son_tetiklenen_dakika
     type: int
     restore_value: no
-    initial_value: '0'
-  - id: touch_y
-    type: int
-    restore_value: no
-    initial_value: '0'
-  - id: touch_debug
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-
+    initial_value: '-1'
   - id: feeding_now
     type: bool
     restore_value: no
     initial_value: "false"
-
+    
+  - id: last_feed_minute
+    type: int
+    restore_value: no
+    initial_value: '-1'
+    
   - id: sistem_hazir
     type: bool
     restore_value: no
@@ -1175,8 +1565,50 @@ number:
     min_value: -100
     max_value: 100
     step: 1
-    initial_value: 0
+    initial_value: 92
     restore_value: true
+switch:
+  - platform: template
+    name: "Yemleme 1 Aktif"
+    id: yemleme_1_aktif
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+  - platform: template
+    name: "Yemleme 2 Aktif"
+    id: yemleme_2_aktif
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  - platform: template
+    name: "Yemleme 3 Aktif"
+    id: yemleme_3_aktif
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    
+datetime:
+  - platform: template
+    id: yemleme_sira_1
+    name: "Yemleme 1"
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: "08:00:00"
+
+  - platform: template
+    id: yemleme_sira_2
+    name: "Yemleme 2"
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: "19:00:00"
+
+  - platform: template
+    id: yemleme_sira_3
+    name: "Yemleme 3"
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: "22:00:00"
 # ============================================================
 # DOKUNMATİK EKRAN (XPT2046)
 # ============================================================
@@ -1254,16 +1686,27 @@ sensor:
           
       # İsteğe bağlı: Değer çok sık değişmesin isterseniz eski 30s ortalamanızı da medyanın altına ekleyebilirsiniz
       - throttle_average: 30s
-
     on_value:
       then:
+        - lambda: |-
+            // Kalibrasyon: Deponun tavanından tabanına maksimum boş mesafe örn: 150mm olsun. 
+            // Sensör 30mm okuyorsa depo doludur.
+            float empty_distance = 150.0; 
+            float full_distance = 30.0;
+            float pct = ((empty_distance - x) / (empty_distance - full_distance)) * 100.0;
+            if (pct < 0) pct = 0;
+            if (pct > 100) pct = 100;
+            id(yem_seviyesi_yuzde) = (int)pct;
+        - lvgl.bar.update:
+            id: home_feed_bar
+            value: !lambda "return id(yem_seviyesi_yuzde);"
         - lvgl.label.update:
-            id: distance_value
-            text:
-              format: "%.0f mm"
-              args:
-                - x  # multiply: 1000.0 filtresi sayesinde x artık tam olarak milimetre!
-
+            id: home_feed_pct_txt
+            text: !lambda |-
+              char buf[12];
+              sprintf(buf, "%%%d", id(yem_seviyesi_yuzde));
+              return {buf};
+              
   - platform: uptime
     name: "Uptime Sensor"
     id: uptime_sensor_seconds
@@ -1331,6 +1774,74 @@ display:
 text_sensor:
   - platform: template
     id: wifi_ikonu
+  - platform: template
+    name: "Sonraki Yemleme"
+    id: sonraki_yemleme
+    icon: "mdi:clock-outline"
+    update_interval: 15s
+    lambda: |-
+      auto now = id(internet_saati).now();
+      if (!now.is_valid()) return std::string("Senkron...");
+      
+      int current_minute = now.hour * 60 + now.minute;
+      int feed1 = id(yemleme_1_aktif).state ? id(yemleme_sira_1).hour * 60 + id(yemleme_sira_1).minute : -1;
+      int feed2 = id(yemleme_2_aktif).state ? id(yemleme_sira_2).hour * 60 + id(yemleme_sira_2).minute : -1;
+      int feed3 = id(yemleme_3_aktif).state ? id(yemleme_sira_3).hour * 60 + id(yemleme_sira_3).minute : -1;
+      
+      int next_feed = -1;
+      if (feed1 > current_minute) next_feed = feed1;
+      if (feed2 > current_minute && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
+      if (feed3 > current_minute && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
+      
+      if (next_feed == -1) {
+        if (feed1 != -1) next_feed = feed1;
+        if (feed2 != -1 && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
+        if (feed3 != -1 && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
+      }
+      
+      if (next_feed == -1) return std::string("Yok");
+      
+      char buffer[16];
+      sprintf(buffer, "%02d:%02d", next_feed / 60, next_feed % 60);
+      return std::string(buffer);
+  - platform: template
+    name: "Sonraki Yemleme Hesaplayıcı"
+    id: sonraki_yemleme_hesapla
+    update_interval: 15s
+    lambda: |-
+      auto now = id(internet_saati).now();
+      if (!now.is_valid()) return std::string("--:--");
+      
+      int current_minute = now.hour * 60 + now.minute;
+      int feed1 = id(yemleme_1_aktif).state ? id(yemleme_sira_1).hour * 60 + id(yemleme_sira_1).minute : -1;
+      int feed2 = id(yemleme_2_aktif).state ? id(yemleme_sira_2).hour * 60 + id(yemleme_sira_2).minute : -1;
+      int feed3 = id(yemleme_3_aktif).state ? id(yemleme_sira_3).hour * 60 + id(yemleme_sira_3).minute : -1;
+      
+      int next_feed = -1;
+      if (feed1 > current_minute) next_feed = feed1;
+      if (feed2 > current_minute && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
+      if (feed3 > current_minute && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
+      
+      if (next_feed == -1) {
+        if (feed1 != -1) next_feed = feed1;
+        if (feed2 != -1 && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
+        if (feed3 != -1 && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
+      }
+      
+      if (next_feed == -1) return std::string("Yok");
+      
+      char buffer[16];
+      sprintf(buffer, "%02d:%02d", next_feed / 60, next_feed % 60);
+      return std::string(buffer);
+  - platform: template
+    name: "Yemleme Döngüsü"
+    id: yemleme_dongusu
+    update_interval: 10s
+    lambda: |-
+      int total = (id(yemleme_1_aktif).state ? 1 : 0) + (id(yemleme_2_aktif).state ? 1 : 0) + (id(yemleme_3_aktif).state ? 1 : 0);
+      char buffer[16];
+      sprintf(buffer, "Günde %d Kez", total);
+      return {buffer};
   - platform: uptime
     id: uptime_sensor_text
     name: Uptime

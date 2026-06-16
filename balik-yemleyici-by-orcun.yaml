@@ -181,6 +181,7 @@ output:
     id: tft_led
     pin: GPIO6
     frequency: 1000Hz
+
 servo:
   - id: yemleyici_servo
     output: pwm_output
@@ -201,6 +202,7 @@ font:
       - "%"
       - "("
       - ")"
+      - "!"
       - "*"
       - "+"
       - "-"
@@ -237,6 +239,7 @@ font:
       - "O"
       - "Ö"
       - "P"
+      - "Q"
       - "R"
       - "S"
       - "Ş"
@@ -244,6 +247,7 @@ font:
       - "U"
       - "Ü"
       - "V"
+      - "X"
       - "W"
       - "Y"
       - "Z"
@@ -267,6 +271,7 @@ font:
       - "o"
       - "ö"
       - "p"
+      - "q"
       - "r"
       - "s"
       - "ş"
@@ -274,6 +279,7 @@ font:
       - "u"
       - "ü"
       - "v"
+      - "x"
       - "w"
       - "y"
       - "z"
@@ -349,22 +355,17 @@ lvgl:
   page_wrap: false
   id: lvgl_id
   displays:
-    - display_id: ekranim
-      idle_timeout:
-        - timeout: !lambda 'return id(ekran_bekleme_suresi).state * 1000;'
-          then:
-            - logger.log: "Ekran boşta kaldı, uyku moduna alınıyor..."
-            - light.turn_off: ekran_arka_isigi
-            - lvgl.pause: 
-      on_interaction:
-        then:
-          - if:
-              condition:
-                - light.is_off: ekran_arka_isigi
-              then:
-                - lvgl.resume: 
-                - light.turn_on: ekran_arka_isigi
-                - logger.log: "Ekrana dokunuldu, sistem uyandı!"
+    - ekranim
+
+  on_idle:
+    timeout: !lambda |-
+      return id(ekran_bekleme_suresi).state * 1000;
+
+    then:
+      - logger.log: "Ekran boşta kaldı"
+      - light.turn_off: ekran_arka_isigi
+      - lvgl.pause:
+
   theme:
     buttonmatrix:
       bg_color: 0x070E1B
@@ -380,7 +381,6 @@ lvgl:
         radius: 0
         pad_all: 0
         text_color: 0x8E9FB8      # Inactive (pasif) renk — gri-mavi
-        text_font: mdi_icons
         # PRESSED (basılı anlık)
         pressed:
           bg_color: 0x0F172A
@@ -465,6 +465,7 @@ lvgl:
                 height: 40
                 align: CENTER
                 bg_color: 0x070E1B
+                text_font: mdi_icons
                 border_width: 0
                 pad_all: 0
                 pad_row: 0
@@ -1218,20 +1219,22 @@ lvgl:
             height: 100
             bg_color: 0x0F172A
             radius: 12
+            pad_all: 0
             border_width: 1
             border_color: 0x1E293B
+            scrollbar_mode: "OFF"
             widgets:
               # Wi-Fi Durumu
-              - label: {text: "\U000F05A9", x: 15, y: 15, text_font: mdi_icons, text_color: 0x64748B} # wifi ikon
-              - label: {id: lbl_boot_wifi, text: "Wi-Fi Bağlanıyor...", x: 40, y: 15, text_font: font_10, text_color: 0x94A3B8}
+              - label: {text: "\U000F05A9", x: 15, y: 7, text_font: mdi_icons, text_color: 0x64748B} # wifi ikon
+              - label: {id: lbl_boot_wifi, text: "Wi-Fi Bağlanıyor...", x: 40, y: 8, text_font: font_10, text_color: 0x94A3B8}
 
               # RTC Saat Modülü Durumu
-              - label: {text: "\U000F02DC", x: 15, y: 42, text_font: mdi_icons, text_color: 0x64748B} # clock ikon
-              - label: {id: lbl_boot_rtc, text: "RTC Modül Kontrolü...", x: 40, y: 42, text_font: font_10, text_color: 0x94A3B8}
+              - label: {text: "\U000F02DC", x: 15, y: 34, text_font: mdi_icons, text_color: 0x64748B} # clock ikon
+              - label: {id: lbl_boot_rtc, text: "RTC Modül Kontrolü...", x: 40, y: 35, text_font: font_10, text_color: 0x94A3B8}
 
               # Bellek ve Sistem Durumu
-              - label: {text: "\U000F0483", x: 15, y: 69, text_font: mdi_icons, text_color: 0x64748B} # cpu/disk ikon
-              - label: {id: lbl_boot_sys, text: "Sistem Çekirdeği OK", x: 40, y: 69, text_font: font_10, text_color: 0x10B981}
+              - label: {text: "\U000F0483", x: 15, y: 61, text_font: mdi_icons, text_color: 0x64748B} # cpu/disk ikon
+              - label: {id: lbl_boot_sys, text: "Sistem Çekirdeği OK", x: 40, y: 62, text_font: font_10, text_color: 0x10B981}
 
 script:
   - id: yemleme_script
@@ -1459,6 +1462,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+  - id: ekran_bos_saniye
+    type: int
+    restore_value: no
+    initial_value: "0"
   - id: secili_plan
     type: int
     restore_value: no
@@ -1510,13 +1517,16 @@ number:
     restore_value: true
 
   - platform: template
-    name: "Ekran Bekleme Süresi"
+    name: Ekran Bekleme Süresi
+    optimistic: true
     id: ekran_bekleme_suresi
+    unit_of_measurement: "s"
+    initial_value: 30
+    restore_value: true
     min_value: 10
     max_value: 300
     step: 5
-    initial_value: 30
-    unit_of_measurement: "s"
+    mode: box
 
 switch:
   - platform: template
@@ -1575,7 +1585,14 @@ touchscreen:
     x_max: 3500
     y_min: 550
     y_max: 3770
-
+  on_release:
+    - if:
+        condition: lvgl.is_paused
+        then:
+          - logger.log: "LVGL resuming"
+          - lvgl.resume:
+          - lvgl.widget.redraw:
+          - light.turn_on: ekran_arka_isigi
 # ============================================================
 # DS18B20
 # ============================================================

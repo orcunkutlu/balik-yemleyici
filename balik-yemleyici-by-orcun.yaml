@@ -13,7 +13,37 @@ esphome:
       - switch.turn_on: yemleme_1_aktif
       - switch.turn_on: yemleme_2_aktif
       - switch.turn_off: yemleme_3_aktif
-      - delay: 6s
+
+      - delay: 1.5s
+      - lvgl.bar.update:
+          id: boot_progress_bar
+          value: 35
+      - lvgl.label.update:
+          id: lbl_boot_wifi
+          text: "Wi-Fi Bağlandı! (OK)"
+          text_color: 0x10B981
+
+      - delay: 1.5s
+      - lvgl.bar.update:
+          id: boot_progress_bar
+          value: 70
+      - lvgl.label.update:
+          id: lbl_boot_rtc
+          text: "DS3231 Zaman Senkronize"
+          text_color: 0x10B981
+
+      # 4.5. Saniye: Sistem Hazırlığı Tamamlanıyor
+      - delay: 1.5s
+      - lvgl.bar.update:
+          id: boot_progress_bar
+          value: 100
+      - lvgl.label.update:
+          id: lbl_boot_sys
+          text: "Sistem Hazır. Başlatılıyor..."
+          text_color: 0xF59E0B  # Amber rengine dönüyor
+
+      # 6. Saniye: Ana Ekran Geçişi
+      - delay: 1s
       - lvgl.page.show: page_home
       - lvgl.widget.show: navbar_container
       - lvgl.widget.show: hdr_shb_bar
@@ -147,6 +177,10 @@ output:
     pin: GPIO5
     frequency: 50Hz
 
+  - platform: ledc
+    id: tft_led
+    pin: GPIO6
+    frequency: 1000Hz
 servo:
   - id: yemleyici_servo
     output: pwm_output
@@ -158,7 +192,7 @@ servo:
 # ============================================================
 font:
   - file: "fonts/montserrat_regular.ttf"
-    id: montserrat_10
+    id: font_10
     size: 10
     bpp: 4
     glyphs: &ascii_glyphs
@@ -245,31 +279,31 @@ font:
       - "z"
 
   - file: "fonts/montserrat_regular.ttf"
-    id: montserrat_14
+    id: font_14
     size: 14
     bpp: 4
     glyphs: *ascii_glyphs
 
   - file: "fonts/montserrat_regular.ttf"
-    id: font_kucuk
+    id: font_16
     size: 16
     bpp: 4
     glyphs: *ascii_glyphs
 
   - file: "fonts/montserrat_regular.ttf"
-    id: montserrat_18
+    id: font_18
     size: 18
     bpp: 4
     glyphs: *ascii_glyphs
 
   - file: "fonts/montserrat_regular.ttf"
-    id: font_orta
+    id: font_24
     size: 24
     bpp: 4
     glyphs: *ascii_glyphs
 
   - file: "fonts/montserrat_regular.ttf"
-    id: font_buyuk
+    id: font_48
     size: 48
     bpp: 4
     glyphs:
@@ -287,14 +321,13 @@ font:
       - "7"
       - "8"
       - "9"
-  - file:
-      url: "https://cdn.jsdelivr.net/npm/@mdi/font@latest/fonts/materialdesignicons-webfont.ttf"
-      type: web
+  - file: "fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons
     size: 24
     bpp: 4
     glyphs: [
       "\U000F023A",  # mdi-fish
+      "\U000F0EF4",  # mdi-fishbowl-outline
       "\U000F05A9",  # mdi-wifi
       "\U000F05AA",  # mdi-wifi-off
       "\U000F1A85",  # mdi-thermometer
@@ -302,10 +335,11 @@ font:
       "\U000F0150",  # mdi-home
       "\U000F0493",  # mdi-cog
       "\U000F0C9E",  # mdi-chart-box
-      "\U000F0F4B",  # mdi-food
       "\U000F02DC",  # mdi-clock
-      "\U000F0D21",  # mdi-mother-nurse for feed button
+      "\U000F0483",  # mdi-shield
       "\U000F0198",  # mdi-cookie
+      "\U000F00E8",  # mdi-cached
+
     ]
 
 # ============================================================
@@ -314,7 +348,23 @@ font:
 lvgl:
   page_wrap: false
   id: lvgl_id
-  displays: ekranim
+  displays:
+    - display_id: ekranim
+      idle_timeout:
+        - timeout: !lambda 'return id(ekran_bekleme_suresi).state * 1000;'
+          then:
+            - logger.log: "Ekran boşta kaldı, uyku moduna alınıyor..."
+            - light.turn_off: ekran_arka_isigi
+            - lvgl.pause: 
+      on_interaction:
+        then:
+          - if:
+              condition:
+                - light.is_off: ekran_arka_isigi
+              then:
+                - lvgl.resume: 
+                - light.turn_on: ekran_arka_isigi
+                - logger.log: "Ekrana dokunuldu, sistem uyandı!"
   theme:
     buttonmatrix:
       bg_color: 0x070E1B
@@ -372,7 +422,7 @@ lvgl:
                 text_color: 0xF1F5F9
                 text_align: LEFT
                 long_mode: CLIP
-                text_font: font_kucuk
+                text_font: font_16
             - label:
                 id: header_datetime
                 x: 14
@@ -381,7 +431,7 @@ lvgl:
                 height: 12
                 text: "16 Haz 00:00"
                 text_color: 0x8E9FB8
-                text_font: montserrat_10
+                text_font: font_10
             - label:
                 id: header_wifi_icon
                 x: 210
@@ -449,7 +499,7 @@ lvgl:
                                 control: {checked: false}
                                     
                       - id: nav_feed
-                        text: "\U000F0F4B"
+                        text: "\U000F0198"
                         width: 1
                         control:
                           checkable: true
@@ -575,7 +625,7 @@ lvgl:
                         text_color: 0xF1F5F9
                         text_align: LEFT
                         long_mode: CLIP
-                        text_font: montserrat_18
+                        text_font: font_18
                     - label:
                         id: water_temp_unit
                         x: 84
@@ -586,7 +636,7 @@ lvgl:
                         text_color: 0x8E9FB8
                         text_align: LEFT
                         long_mode: CLIP
-                        text_font: montserrat_14
+                        text_font: font_14
               - obj:
                   id: clock_card
                   x: 126
@@ -625,9 +675,10 @@ lvgl:
                         text_color: 0xF1F5F9
                         text_align: LEFT
                         long_mode: CLIP
-                        text_font: montserrat_18
+                        text_font: font_18
+
               - obj:
-                  id: date_card
+                  id: uptime_card
                   x: 4
                   y: 88
                   width: 110
@@ -639,45 +690,45 @@ lvgl:
                   border_opa: 20%
                   radius: 16
                   shadow_width: 5
-                  shadow_color: 0x10B981
+                  shadow_color: 0xF59E0B  # İstenen Turuncu Amber rengi gölge
                   shadow_opa: 35%
                   scrollbar_mode: "OFF"
                   pad_all: 0
                   widgets:
                     - label:
-                        id: date_icon
+                        id: uptime_icon
                         x: 10
                         y: 9
                         width: 90
                         height: 22
-                        text: "\U000F0679"
+                        text: "\U000F00E8"
                         text_font: mdi_icons
                         text_align: CENTER
-                        text_color: 0x10B981
+                        text_color: 0xF59E0B
                     - label:
-                        id: date_value
-                        x: 10
+                        id: uptime_value
+                        x: 5
                         y: 33
-                        width: 90
+                        width: 100
                         height: 22
-                        text: "12.06.2026"
+                        text: "Sistem Açılıyor..."
                         text_color: 0xF1F5F9
                         text_align: CENTER
-                        long_mode: CLIP
-                        text_font: montserrat_18
+                        long_mode: SCROLL_CIRCULAR  # Yazı uzun olacağı için kayma efekti verildi
+                        text_font: font_10  # Okunabilirlik ve sığması adına font optimize edildi
                     - label:
-                        id: date_label
+                        id: uptime_label
                         x: 10
                         y: 58
                         width: 90
                         height: 12
-                        text: "Tarih"
+                        text: "Çalışma Süresi"
                         text_color: 0x8E9FB8
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: montserrat_10
+                        text_font: font_10
                     - line:
-                        id: ic1_ic_accent
+                        id: uptime_accent_line
                         x: 10
                         y: 72
                         width: 90
@@ -685,8 +736,9 @@ lvgl:
                         points:
                           - 0, 0
                           - 124, 0
-                        line_color: 0x10B981
+                        line_color: 0xF59E0B
                         line_rounded: true
+
               - obj:
                   id: next_feed_card
                   x: 126
@@ -723,11 +775,11 @@ lvgl:
                         y: 33
                         width: 90
                         height: 22
-                        text: "08:00"
-                        text_color: 0xF1F5F9
+                        text: "--:--"
+                        text_color: 0xFFFFFF
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: montserrat_18
+                        text_font: font_16
 
                     - label:
                         id: next_feed_label
@@ -735,11 +787,11 @@ lvgl:
                         y: 58
                         width: 90
                         height: 12
-                        text: "Sonraki"
-                        text_color: 0x8E9FB8
+                        text: "Sonraki Yemleme"
+                        text_color: 0x94A3B8
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: montserrat_10
+                        text_font: font_10
               - obj:
                   id: last_feed_card
                   x: 4
@@ -774,11 +826,11 @@ lvgl:
                         y: 24
                         width: 53
                         height: 22
-                        text: "19:30"
-                        text_color: 0xF1F5F9
+                        text: "--:--"
+                        text_color: 0xFFFFFF
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: montserrat_18
+                        text_font: font_18
                     - label:
                         id: last_feed_label
                         x: 24
@@ -786,10 +838,10 @@ lvgl:
                         width: 80
                         height: 12
                         text: "Son Yemleme"
-                        text_color: 0x8E9FB8
+                        text_color: 0x94A3B8
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: montserrat_10
+                        text_font: font_10
               - obj:
                   id: feed_level_card
                   x: 126
@@ -828,7 +880,7 @@ lvgl:
                         text_color: 0xF1F5F9
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: montserrat_14
+                        text_font: font_14
                     - label:
                         id: food_level_label
                         x: 24
@@ -839,7 +891,7 @@ lvgl:
                         text_color: 0x8E9FB8
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: montserrat_10
+                        text_font: font_10
               - obj:
                   id: yem_feed_card
                   x: 4
@@ -864,7 +916,7 @@ lvgl:
                         y: 6
                         width: 40
                         height: 28
-                        text: "\U000F0D21"
+                        text: "\U000F0198"
                         text_color: 0xFBBF24
                         text_font: mdi_icons
                         text_opa: 100%
@@ -878,7 +930,7 @@ lvgl:
                         height: 18
                         text: 'Yem Ver'
                         text_color: 0x8E9FB8
-                        text_font: montserrat_14
+                        text_font: font_14
                         text_opa: 80%
                         text_align: CENTER
                         long_mode: CLIP
@@ -893,18 +945,18 @@ lvgl:
                   on_click:
                     then:
                       - script.execute: yemleme_script
+
     - id: page_feed
       bg_color: 0x08142D
       pad_all: 0
       widgets:
-        # ÜST PLAN SEÇİCİ - Sekme Mantığı (Büyük ve Rahat Dokunma Alanı)
         - buttonmatrix:
             id: plan_secici_matrix
             x: 5
             y: 45
             width: 230
             height: 38
-            text_font: montserrat_14
+            text_font: font_14
             one_checked: true
             rows:
               - buttons:
@@ -946,7 +998,7 @@ lvgl:
                   y: 16
                   width: 10
                   height: 10
-                  color: 0x10B981 # Yeşil Renk
+                  color: 0x10B981
                   brightness: 100%
               
               - label:
@@ -954,7 +1006,7 @@ lvgl:
                   x: 32
                   y: 13
                   text: "Plan Durumu"
-                  text_font: montserrat_14
+                  text_font: font_14
                   text_color: 0x8E9FB8
 
               # Aktif / Pasif Değiştirme Butonu
@@ -966,7 +1018,7 @@ lvgl:
                   height: 26
                   bg_color: 0x1E293B
                   widgets:
-                    - label: {id: txt_plan_status_btn, text: "AÇ", align: CENTER, text_font: montserrat_10, text_color: 0xFFFFFF}
+                    - label: {id: txt_plan_status_btn, text: "AÇ", align: CENTER, text_font: font_10, text_color: 0xFFFFFF}
                   on_click:
                     then:
                       - lambda: |-
@@ -984,7 +1036,7 @@ lvgl:
                   height: 35
                   bg_color: 0x1E293B
                   widgets:
-                    - label: {text: "+", align: CENTER, text_font: font_orta, text_color: 0xFBBF24}
+                    - label: {text: "+", align: CENTER, text_font: font_24, text_color: 0xFBBF24}
                   on_click:
                     then:
                       - lambda: |-
@@ -1001,7 +1053,7 @@ lvgl:
                   height: 30
                   text: "00"
                   text_align: CENTER
-                  text_font: font_orta
+                  text_font: font_24
                   text_color: 0xF1F5F9
               
               - button:
@@ -1012,7 +1064,7 @@ lvgl:
                   height: 35
                   bg_color: 0x1E293B
                   widgets:
-                    - label: {text: "-", align: CENTER, text_font: font_orta, text_color: 0xFBBF24}
+                    - label: {text: "-", align: CENTER, text_font: font_24, text_color: 0xFBBF24}
                   on_click:
                     then:
                       - lambda: |-
@@ -1029,10 +1081,10 @@ lvgl:
                   height: 30
                   text: ":"
                   text_align: CENTER
-                  text_font: font_orta
+                  text_font: font_24
                   text_color: 0x8E9FB8
 
-              # Dakika Arttır/Azalt (5'erli Atlama)
+              # Dakika Arttır/Azalt (10'arli Atlama)
               - button:
                   id: btn_min_up
                   x: 145
@@ -1041,14 +1093,14 @@ lvgl:
                   height: 35
                   bg_color: 0x1E293B
                   widgets:
-                    - label: {text: "+", align: CENTER, text_font: font_orta, text_color: 0xFBBF24}
+                    - label: {text: "+", align: CENTER, text_font: font_24, text_color: 0xFBBF24}
                   on_click:
                     then:
                       - lambda: |-
                           int p = id(secili_plan);
-                          if (p == 1) { auto c = id(yemleme_sira_1).make_call(); c.set_minute((id(yemleme_sira_1).minute + 5) % 60); c.perform(); }
-                          else if (p == 2) { auto c = id(yemleme_sira_2).make_call(); c.set_minute((id(yemleme_sira_2).minute + 5) % 60); c.perform(); }
-                          else if (p == 3) { auto c = id(yemleme_sira_3).make_call(); c.set_minute((id(yemleme_sira_3).minute + 5) % 60); c.perform(); }
+                          if (p == 1) { auto c = id(yemleme_sira_1).make_call(); c.set_minute((id(yemleme_sira_1).minute + 10) % 60); c.perform(); }
+                          else if (p == 2) { auto c = id(yemleme_sira_2).make_call(); c.set_minute((id(yemleme_sira_2).minute + 10) % 60); c.perform(); }
+                          else if (p == 3) { auto c = id(yemleme_sira_3).make_call(); c.set_minute((id(yemleme_sira_3).minute + 10) % 60); c.perform(); }
               
               - label:
                   id: txt_plan_min
@@ -1058,7 +1110,7 @@ lvgl:
                   height: 30
                   text: "00"
                   text_align: CENTER
-                  text_font: font_orta
+                  text_font: font_24
                   text_color: 0xF1F5F9
               
               - button:
@@ -1069,7 +1121,7 @@ lvgl:
                   height: 35
                   bg_color: 0x1E293B
                   widgets:
-                    - label: {text: "-", align: CENTER, text_font: font_orta, text_color: 0xFBBF24}
+                    - label: {text: "-", align: CENTER, text_font: font_24, text_color: 0xFBBF24}
                   on_click:
                     then:
                       - lambda: |-
@@ -1077,13 +1129,14 @@ lvgl:
                           if (p == 1) { auto c = id(yemleme_sira_1).make_call(); c.set_minute(id(yemleme_sira_1).minute == 0 ? 55 : id(yemleme_sira_1).minute - 5); c.perform(); }
                           else if (p == 2) { auto c = id(yemleme_sira_2).make_call(); c.set_minute(id(yemleme_sira_2).minute == 0 ? 55 : id(yemleme_sira_2).minute - 5); c.perform(); }
                           else if (p == 3) { auto c = id(yemleme_sira_3).make_call(); c.set_minute(id(yemleme_sira_3).minute == 0 ? 55 : id(yemleme_sira_3).minute - 5); c.perform(); }
+    
     - id: page_log
       bg_color: 0x08142D
       widgets:
         - label:
             text: "Sistem Kayıtları Bekleniyor..."
             align: CENTER
-            text_font: font_kucuk
+            text_font: font_16
             text_color: 0x8E9FB8
 
     - id: page_settings
@@ -1095,68 +1148,97 @@ lvgl:
             align: TOP_MID
             y: 60
             widgets:
-              - label: {text: "WIFI AYARLARI", align: CENTER, text_font: font_kucuk}
+              - label: {text: "WIFI AYARLARI", align: CENTER, text_font: font_16}
         - button:
             width: 200
             height: 40
             align: TOP_MID
             y: 110
             widgets:
-              - label: {text: "SISTEM REBOOT", align: CENTER, text_font: font_kucuk}
+              - label: {text: "SISTEM REBOOT", align: CENTER, text_font: font_16}
 
     - id: page_boot
-      bg_color: 0x0B0F14
+      bg_color: 0x08142D  # Ana derin lacivert arka plan
       pad_all: 0
       widgets:
-        - obj:
-            id: lv_obj_0
+        # Akvaryum / Balık Logosu Alanı (MDI İkonu ile Büyük Logo)
+        - label:
+            id: boot_logo
             x: 0
-            y: 0
+            y: 40
             width: 240
-            height: 320
-            bg_color: 0x101010
-            pad_all: 0
+            height: 50
+            text: "\U000F0EF4"  # MDI 'fishbowl' (Balık) İkonu
+            text_font: mdi_icons  # Büyük ikon fontunuz (Genişletilmiş ikon setinde olmalı)
+            text_align: CENTER
+            text_color: 0x3B82F6  # Canlı Neon Mavi
+
+        - label:
+            id: boot_title
+            x: 0
+            y: 95
+            width: 240
+            height: 25
+            text: "AQUA CONTROL"
+            text_font: font_16  # Akşam değiştirdiğiniz yeni font ismi
+            text_align: CENTER
+            text_color: 0xF1F5F9
+
+        - label:
+            id: boot_subtitle
+            x: 0
+            y: 118
+            width: 240
+            height: 15
+            text: "Akvaryum OS v2.0"
+            text_font: font_10
+            text_align: CENTER
+            text_color: 0x64748B
+
+        # Modern Çizgisel Yükleme Barı (Progress Bar)
+        - bar:
+            id: boot_progress_bar
+            x: 30
+            y: 160
+            width: 180
+            height: 6
+            bg_color: 0x1E293B
+            mode: NORMAL
+            value: 0
+            # Barın yüklenen kısmının rengi (Premium Turuncu Amber renginiz)
+            # LVGL bar rengini değiştirmek için style tanımları gerekebilir, 
+            # varsayılan olarak ana temayı veya yeşili/maviyi kullanır.
+
+        # ALTTTAKİ DONANIM KONTROL PANELİ (Self-Test)
+        - obj:
+            id: boot_status_panel
+            x: 25
+            y: 190
+            width: 190
+            height: 100
+            bg_color: 0x0F172A
+            radius: 12
+            border_width: 1
+            border_color: 0x1E293B
             widgets:
-              - label:
-                  id: boot_logo
-                  x: 107
-                  y: 80
-                  width: 24
-                  height: 24
-                  text: "\U000F023A"
-                  text_font: mdi_icons
-                  text_color: 0xFBBF24
-              - label:
-                  id: lv_label_1
-                  x: 56
-                  y: 110
-                  text: "AKVARYUM OS"
-                  text_color: 0xFFFFFF
-                  text_font: font_kucuk
-              - spinner:
-                  id: lv_spinner_2
-                  x: 0
-                  y: 10
-                  width: 40
-                  height: 40
-                  align: CENTER
-                  spin_time: 1000ms
-                  arc_length: 60deg
-                  arc_color: 0x818CF8
-                  indicator:
-                    arc_color: 0xFFFFFF
-              - label:
-                  id: boot_durum
-                  x: 80
-                  y: 220
-                  text: "Başlatılıyor..."
-                  text_color: 0x80A40A
-                  text_font: font_kucuk
+              # Wi-Fi Durumu
+              - label: {text: "\U000F05A9", x: 15, y: 15, text_font: mdi_icons, text_color: 0x64748B} # wifi ikon
+              - label: {id: lbl_boot_wifi, text: "Wi-Fi Bağlanıyor...", x: 40, y: 15, text_font: font_10, text_color: 0x94A3B8}
+
+              # RTC Saat Modülü Durumu
+              - label: {text: "\U000F02DC", x: 15, y: 42, text_font: mdi_icons, text_color: 0x64748B} # clock ikon
+              - label: {id: lbl_boot_rtc, text: "RTC Modül Kontrolü...", x: 40, y: 42, text_font: font_10, text_color: 0x94A3B8}
+
+              # Bellek ve Sistem Durumu
+              - label: {text: "\U000F0483", x: 15, y: 69, text_font: mdi_icons, text_color: 0x64748B} # cpu/disk ikon
+              - label: {id: lbl_boot_sys, text: "Sistem Çekirdeği OK", x: 40, y: 69, text_font: font_10, text_color: 0x10B981}
 
 script:
   - id: yemleme_script
     mode: single
     then:
+      - lvgl.resume:
+      - light.turn_on: ekran_arka_isigi
       - lambda: |-
           id(feeding_now) = true;
 
@@ -1267,13 +1349,10 @@ interval:
             - light.turn_on: plan_aktif_isik
           else: 
             - light.turn_off: plan_aktif_isik
-
       - lvgl.label.update:
-          id: date_value
-          text:
-            format: "%s"
-            args: ['id(internet_saati).now().strftime("%d.%m.%Y").c_str()']
-      
+          id: uptime_value
+          text: !lambda |-
+            return id(uptime_sensor_text).state;
       # Tesis edilen tüm planları kontrol edip sıradaki en yakın olanı ekrana basar
       - lvgl.label.update:
           id: next_feed_value
@@ -1361,10 +1440,17 @@ light:
           name: slow_pulse
           transition_length: 1s
           update_interval: 2s
+
   - platform: lvgl
     name: "Plan Aktif LED Işığı"
     id: plan_aktif_isik
     widget: plan_aktif_led
+
+  - platform: monochromatic
+    output: tft_led
+    name: "Ekran Parlaklığı"
+    id: ekran_arka_isigi
+    restore_mode: ALWAYS_ON
 # ============================================================
 # Global Değişkenler
 # ============================================================  
@@ -1422,6 +1508,16 @@ number:
     step: 1
     initial_value: 92
     restore_value: true
+
+  - platform: template
+    name: "Ekran Bekleme Süresi"
+    id: ekran_bekleme_suresi
+    min_value: 10
+    max_value: 300
+    step: 5
+    initial_value: 30
+    unit_of_measurement: "s"
+
 switch:
   - platform: template
     name: "Yemleme 1 Aktif"
@@ -1668,6 +1764,7 @@ text_sensor:
       hours: " Saat"
       minutes: " Dakika"
       seconds: " saniye"
+    update_interval: 1s
     icon: mdi:clock-start
   - platform: wifi_info
     ip_address:

@@ -342,6 +342,7 @@ font:
       "\U000F0483",  # mdi-shield
       "\U000F0198",  # mdi-cookie
       "\U000F00E8",  # mdi-cached
+      "\U000F13E2",  # ne ikonu bilmiyorum
 
     ]
 
@@ -1278,7 +1279,61 @@ lvgl:
                   on_click:
                     then:
                       - button.press: system_restart_btn
+    - id: page_feeding
+      bg_color: 0x030712 # Neredeyse tamamen siyah, çok şık bir arka plan
+      pad_all: 0
+      widgets:
+        # Arka planda hafif parlayan estetik bir neon daire efekti
+        - obj:
+            x: 50
+            y: 40
+            width: 140
+            height: 140
+            bg_color: 0x1E1B4B
+            radius: 70 # Tam daire
+            border_width: 2
+            border_color: 0x312E81
+            pad_all: 0
+            widgets:
+              # Tam ortada büyük parlayan Yemleme / Balık İkonu
+              - label:
+                  text: "\U000F13E2" # Canlı ve büyük bir akvaryum/balık/yem ikonu
+                  align: CENTER
+                  text_font: mdi_icons
+                  text_color: 0xFBBF24 # Amber / Altın sarısı
 
+        # Ana Metin Başlığı
+        - label:
+            text: "BALIKLAR YEMLENİYOR"
+            x: 0
+            y: 195
+            width: 240
+            align: CENTER
+            text_font: font_14
+            text_color: 0xF8FAFC
+
+        # Durum Bilgisi Metni
+        - label:
+            id: lbl_feeding_status
+            text: "Servo motor çalıştırılıyor..."
+            x: 0
+            y: 215
+            width: 240
+            align: CENTER
+            text_font: font_10
+            text_color: 0x64748B
+
+        # Şık, İnce ve Modern Yükleme Çubuğu (Progress Bar)
+        - bar:
+            id: feeding_progress_bar
+            x: 30
+            y: 235
+            width: 180
+            height: 6
+            bg_color: 0x1E293B
+            value: 0
+            range_min: 0
+            range_max: 100
     - id: page_boot
       bg_color: 0x08142D  # Ana derin lacivert arka plan
       pad_all: 0

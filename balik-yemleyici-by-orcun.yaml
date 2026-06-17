@@ -10,9 +10,6 @@ esphome:
       - lvgl.widget.hide: navbar_container
       - lvgl.widget.hide: hdr_shb_bar
       - lvgl.page.show: page_boot
-      - switch.turn_on: yemleme_1_aktif
-      - switch.turn_on: yemleme_2_aktif
-      - switch.turn_off: yemleme_3_aktif
 
       - delay: 1.5s
       - lvgl.bar.update:
@@ -66,7 +63,7 @@ psram:
   speed: 80MHz
 
 logger:
-  level: DEBUG
+  level: WARN
 
 api:
   encryption:
@@ -1142,21 +1139,145 @@ lvgl:
 
     - id: page_settings
       bg_color: 0x08142D
+      pad_all: 0
       widgets:
-        - button:
-            width: 200
-            height: 40
-            align: TOP_MID
-            y: 60
+        - obj:
+            id: settings_container
+            x: 0
+            y: 42
+            width: 240
+            height: 238
+            bg_color: 0x08142D
+            border_width: 0
+            scrollbar_mode: "OFF"
+            pad_all: 4
             widgets:
-              - label: {text: "WIFI AYARLARI", align: CENTER, text_font: font_16}
-        - button:
-            width: 200
-            height: 40
-            align: TOP_MID
-            y: 110
-            widgets:
-              - label: {text: "SISTEM REBOOT", align: CENTER, text_font: font_16}
+              # --- SEKTÖR 1: EKRAN SÜRESİ AYARI ---
+              - obj:
+                  x: 4
+                  y: 5
+                  width: 224
+                  height: 48
+                  bg_color: 0x070E1B
+                  radius: 12
+                  border_width: 1
+                  border_color: 0x162038
+                  pad_all: 0
+                  widgets:
+                    - label: {text: "\U000F02DC", x: 12, y: 12, text_font: mdi_icons, text_color: 0x06B6D4}
+                    - label: {text: "Ekran Kapanma", x: 42, y: 8, text_font: font_14, text_color: 0xF1F5F9}
+                    - label: {id: lbl_set_timeout, text: "30 sn", x: 42, y: 26, text_font: font_10, text_color: 0x8E9FB8}
+                    
+                    - button:
+                        x: 135
+                        y: 8
+                        width: 34
+                        height: 32
+                        bg_color: 0x1E293B
+                        widgets: 
+                          - label:            
+                              text: "-"
+                              align: CENTER
+                              text_font: font_18
+                              text_color: 0xFBBF24
+                        on_click:
+                          then:
+                            - number.decrement: ekran_bekleme_suresi
+                    - button:
+                        x: 175
+                        y: 8
+                        width: 34
+                        height: 32
+                        bg_color: 0x1E293B
+                        widgets: 
+                          - label:            
+                              text: "+"
+                              align: CENTER
+                              text_font: font_18
+                              text_color: 0xFBBF24
+                        on_click:
+                          then:
+                            - number.increment: ekran_bekleme_suresi
+
+              # --- SEKTÖR 2: SERVO AÇI AYARI ---
+              - obj:
+                  x: 4
+                  y: 58
+                  width: 224
+                  height: 48
+                  bg_color: 0x070E1B
+                  radius: 12
+                  border_width: 1
+                  border_color: 0x162038
+                  pad_all: 0
+                  widgets:
+                    - label: {text: "\U000F0493", x: 12, y: 12, text_font: mdi_icons, text_color: 0xF59E0B}
+                    - label: {text: "Yem Dökme Açısı", x: 42, y: 8, text_font: font_14, text_color: 0xF1F5F9}
+                    - label: {id: lbl_set_servo, text: "Açı: 92", x: 42, y: 26, text_font: font_10, text_color: 0x8E9FB8}
+                    
+                    - button:
+                        x: 135
+                        y: 8
+                        width: 34
+                        height: 32
+                        bg_color: 0x1E293B
+                        widgets: 
+                          - label: {text: "-", align: CENTER, text_font: font_18, text_color: 0xFBBF24}
+                        on_click:
+                          then:
+                            - number.decrement: servo_acisi
+                    - button:
+                        x: 175
+                        y: 8
+                        width: 34
+                        height: 32
+                        bg_color: 0x1E293B
+                        widgets: 
+                          - label: {text: "+", align: CENTER, text_font: font_18, text_color: 0xFBBF24}
+                        on_click:
+                          then:
+                            - number.increment: servo_acisi
+
+              # --- SEKTÖR 3: CANLI DİAGNOSTİK & BELLEK ANALİZÖRÜ ---
+              - obj:
+                  x: 4
+                  y: 111
+                  width: 224
+                  height: 75
+                  bg_color: 0x070E1B
+                  radius: 12
+                  border_width: 1
+                  border_color: 0x162038
+                  pad_all: 0
+                  widgets:
+                    - label: {text: "\U000F0C9E", x: 12, y: 12, text_font: mdi_icons, text_color: 0x10B981}
+                    
+                    - label: {text: "IP Adresi:", x: 42, y: 6, text_font: font_10, text_color: 0x8E9FB8}
+                    - label: {id: lbl_info_ip, text: "0.0.0.0", x: 95, y: 6, text_font: font_10, text_color: 0xF1F5F9}
+                    
+                    - label: {text: "Wi-Fi Sinyal:", x: 42, y: 22, text_font: font_10, text_color: 0x8E9FB8}
+                    - label: {id: lbl_info_rssi, text: "%00 (-00 dBm)", x: 105, y: 22, text_font: font_10, text_color: 0xF1F5F9}
+
+                    - label: {text: "Boş RAM / PSRAM:", x: 42, y: 38, text_font: font_10, text_color: 0x8E9FB8}
+                    - label: {id: lbl_info_memory, text: "0.00MB / 0.00MB", x: 132, y: 38, text_font: font_10, text_color: 0x22D3EE}
+                    
+                    - label: {text: "Çirdek/Flaş:", x: 42, y: 54, text_font: font_10, text_color: 0x8E9FB8}
+                    - label: {text: "ESP32-S3 / 16MB Quad", x: 105, y: 54, text_font: font_10, text_color: 0x64748B}
+
+              # --- SEKTÖR 4: GÜVENLİ SİSTEM YENİDEN BAŞLATMA ---
+              - button:
+                  id: btn_system_reboot
+                  x: 4
+                  y: 192
+                  width: 224
+                  height: 34
+                  bg_color: 0x7F1D1D
+                  radius: 10
+                  widgets:
+                    - label: {text: "CİHAZI YENİDEN BAŞLAT", align: CENTER, text_font: font_14, text_color: 0xFCA5A5}
+                  on_click:
+                    then:
+                      - button.press: system_restart_btn
 
     - id: page_boot
       bg_color: 0x08142D  # Ana derin lacivert arka plan
@@ -1308,7 +1429,38 @@ interval:
           text:
             format: "%s"
             args: ['id(internet_saati).now().strftime("%H:%M").c_str()']
+      - lvgl.label.update:
+          id: lbl_set_timeout
+          text: !lambda |-
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%0.0f saniye", id(ekran_bekleme_suresi).state);
+            return std::string(buf);
 
+      - lvgl.label.update:
+          id: lbl_set_servo
+          text: !lambda |-
+            char buf[16];
+            snprintf(buf, sizeof(buf), "Mevcut Değer: %0.0f", id(servo_acisi).state);
+            return std::string(buf);
+
+      - lvgl.label.update:
+          id: lbl_info_ip
+          text: !lambda |-
+            return id(wifi_ip).state;
+
+      - lvgl.label.update:
+          id: lbl_info_rssi
+          text: !lambda |-
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%% %0.0f (%0.0f dBm)", id(wifi_signal_percent).state, id(wifi_rssi).state);
+            return std::string(buf);
+
+      - lvgl.label.update:
+          id: lbl_info_memory
+          text: !lambda |-
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%0.2fMB / %0.2fMB", id(free_heap_mb).state, id(free_psram_mb).state);
+            return std::string(buf);
       - lvgl.label.update:
           id: txt_plan_hour
           text: !lambda |-
@@ -1533,15 +1685,19 @@ switch:
     name: "Yemleme 1 Aktif"
     id: yemleme_1_aktif
     optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
 
   - platform: template
     name: "Yemleme 2 Aktif"
     id: yemleme_2_aktif
     optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
   - platform: template
     name: "Yemleme 3 Aktif"
     id: yemleme_3_aktif
     optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
     
 datetime:
   - platform: template
@@ -1641,7 +1797,24 @@ sensor:
             text:
               format: "%.0f mm"
               args: ['x']
-              
+  - platform: template
+    name: "Serbest RAM"
+    id: free_heap_mb
+    unit_of_measurement: "MB"
+    accuracy_decimals: 2
+    update_interval: 10s
+    lambda: |-
+      return esp_get_free_heap_size() / 1024.0 / 1024.0;
+# Not: ESP-IDF üzerinde PSRAM için heap_caps_get_free_size(MALLOC_CAP_SPIRAM) da kullanılabilir.
+  - platform: template
+    name: "Serbest PSRAM"
+    id: free_psram_mb
+    unit_of_measurement: "MB"
+    accuracy_decimals: 2
+    update_interval: 10s
+    lambda: |-
+      return esp_get_free_internal_heap_size() / 1024.0 / 1024.0;  
+      
   - platform: uptime
     name: "Uptime Sensor"
     id: uptime_sensor_seconds

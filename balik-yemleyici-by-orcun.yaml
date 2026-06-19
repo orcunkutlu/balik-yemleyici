@@ -34,6 +34,19 @@ esphome:
       - lvgl.bar.update:
           id: boot_progress_bar
           value: 100
+      - if:
+          condition:
+            binary_sensor.is_on: sebeke_gucu
+          then:
+            - lvgl.label.update:
+                id: header_power_icon
+                text: "\U000F1C3B" # Priz ikonu
+                text_color: 0x10B981 # Yeşil
+          else:
+            - lvgl.label.update:
+                id: header_power_icon
+                text: "\U000F0079" # Pil ikonu
+                text_color: 0xEF4444 # Kırmızı
       - lvgl.label.update:
           id: lbl_boot_sys
           text: "Sistem Hazır. Başlatılıyor..."
@@ -354,6 +367,8 @@ font:
       "\U000F0483",  # mdi-shield
       "\U000F0198",  # mdi-cookie
       "\U000F00E8",  # mdi-cached
+      "\U000F1C3B",   # mdi-power-plug-battery
+      "\U000F0079",   # mdi-power-plug
     ]
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons_large
@@ -432,7 +447,7 @@ lvgl:
                 id: header_title
                 x: 14
                 y: 4
-                width: 180
+                width: 170
                 height: 20
                 text: "Ana Ekran"
                 text_color: 0xF1F5F9
@@ -458,6 +473,15 @@ lvgl:
                 text_font: mdi_icons
                 text_align: CENTER
                 text_color: 0xEF4444
+            - label:
+                id: header_power_icon
+                text: "\U000F1C3B" # Varsayılan olarak priz gösterilsin
+                text_color: 0x10B981 # Şık bir yeşil tonu (Adaptör modu)
+                width: 20
+                height: 20
+                x: 180 # Wi-Fi ikonunun konumuna göre yanına hizalıyoruz
+                y: 10
+                text_font: mdi_icons
 
       - obj:
           id: navbar_container
@@ -2192,3 +2216,29 @@ binary_sensor:
   - platform: status
     name: "Balık Yemleyici"
     id: wifi_status
+
+  - platform: gpio
+    pin:
+      number: GPIO7
+      mode: INPUT
+    name: "Şebeke Gücü"
+    id: sebeke_gucu
+    filters:
+      - delayed_on: 100ms
+      - delayed_off: 100ms
+    on_press:
+      then:
+        - logger.log: "ELEKTRİK GELDİ: Adaptör Modu"
+        # Ekrandaki ikonu yeşil priz yapar
+        - lvgl.label.update:
+            id: header_power_icon
+            text: "\U000F1C3B"
+            text_color: 0x10B981
+    on_release:
+      then:
+        - logger.log: "ELEKTRİK KESİLDİ: Batarya Modu!"
+        # Ekrandaki ikonu kırmızı/turuncu pil yapar
+        - lvgl.label.update:
+            id: header_power_icon
+            text: "\U000F0079"
+            text_color: 0xEF4444 # Dikkat çekici kırmızı tonu (Batarya modu)

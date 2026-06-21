@@ -76,7 +76,7 @@ psram:
   speed: 80MHz
 
 logger:
-  level: WARN
+  level: DEBUG
 
 api:
   encryption:
@@ -1575,7 +1575,7 @@ script:
           red: 0%
           green: 0%
 
-      # 2. ADIM: Servo başlangıç pozisyonu
+      # 2. ADIM: Servo başlangıç pozisyonuna çekiliyor (İlk koddaki ilk adım)
       - servo.write:
           id: yemleyici_servo
           level: -100%
@@ -1587,25 +1587,31 @@ script:
       - lvgl.label.update: {id: feeding_step_text, text: "Dökülüyor"}
       - lvgl.label.update: {id: lbl_feeding_status, text: "Kapak açılıyor, yem dökülüyor..."}
       - lvgl.label.update: {id: step_2, text: "\U000F0765", text_color: 0xF59E0B}
+      
+      # İlk koddaki dinamik açı ile kapağı açma ve 1 saniye bekleme
       - servo.write:
           id: yemleyici_servo
           level: !lambda "return id(servo_acisi).state / 100.0;"
       - delay: 1000ms
 
-      # 4. ADIM: Silkeleme ve temizleme hareketi (Progress %75)
+      # 4. ADIM: Mekanik Silkeleme ve Temizleme Hareketi (Progress %75)
       - lvgl.bar.update: {id: feeding_progress_bar, value: 75}
       - lvgl.label.update: {id: feeding_percent, text: "75%"}
       - lvgl.label.update: {id: feeding_step_text, text: "Silkeleniyor"}
       - lvgl.label.update: {id: lbl_feeding_status, text: "Yem haznesi silkeleniyor..."}
       - lvgl.label.update: {id: step_3, text: "\U000F0765", text_color: 0xF59E0B}
+      
+      # İlk koddaki birebir "Shake" sekansı:
       - servo.write:
           id: yemleyici_servo
           level: -100%
       - delay: 500ms
+      
       - servo.write:
           id: yemleyici_servo
           level: -70%
       - delay: 150ms
+      
       - servo.write:
           id: yemleyici_servo
           level: -100%
@@ -1619,6 +1625,8 @@ script:
       - lvgl.label.update: {id: lbl_feeding_status_title, text: "TAMAMLANDI"}
       - lvgl.label.update: {id: step_4, text: "\U000F0765", text_color: 0x10B981}
       - lvgl.label.update: {id: feeding_icon, text_color: 0x10B981}
+      
+      # Enerji tasarrufu ve servo titremesini önlemek için motoru boşa alma (İlk kodun sonu)
       - servo.detach: yemleyici_servo
       - light.turn_off: rgb_led
 
@@ -2065,6 +2073,47 @@ sensor:
             text:
               format: "%.0f mm"
               args: ['x']
+  # 1. Ham Voltajı Okuyan ve Gerçek Pil Voltajına Dönüştüren Sensör
+  - platform: adc
+    pin: GPIO2
+    name: "Pil Voltajı"
+    id: pil_voltaji
+    update_interval: 10s
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    filters:
+      # Voltaj bölücü kalibrasyonu: 
+      # Analog pinden okunan ~1.04V değerini gerçek pil voltajı olan 4.2V'a çarpma yöntemiyle yükseltiyoruz.
+      # Üstteki direnç formülüne göre çarpanımız yaklaşık (100+33)/33 = 4.03'tür.
+      - multiply: 4.03
+
+  # 2. Voltaj Değerini Yüzdeye (%) Dönüştüren Şablon Sensör
+  - platform: template
+    name: "Pil Yüzdesi"
+    id: pil_yuzdesi
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    icon: "mdi:battery"
+    lambda: |-
+      // Pil voltajını alıyoruz
+      float voltage = id(pil_voltaji).state;
+      
+      // Eğer sensör henüz okunmadıysa orayı pas geç
+      if (isnan(voltage)) return {};
+
+      // Lityum pil için sınır değerleri (4.2V = %100 , 3.3V = %0)
+      float max_v = 4.2;
+      float min_v = 3.3;
+
+      // Voltajı yüzdeye oranla
+      float percentage = ((voltage - min_v) / (max_v - min_v)) * 100.0;
+
+      // Sonucun %0 ile %100 arasında kalmasını sağla (taşmaları engelle)
+      if (percentage > 100.0) percentage = 100.0;
+      if (percentage < 0.0) percentage = 0.0;
+
+      return percentage;
+
   - platform: template
     name: "Serbest RAM"
     id: free_heap_mb

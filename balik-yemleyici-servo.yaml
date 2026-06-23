@@ -1,0 +1,181 @@
+# ========================================================
+# BALIK YEMLEYICI V2
+# ESP32-CAM + OLED
+# ========================================================
+
+esphome:
+  name: balik-yemleyici
+  friendly_name: Balik Yemleyici
+
+esp32:
+  board: esp32cam
+  framework:
+    type: esp-idf
+    advanced:
+      sram1_as_iram: true
+      minimum_chip_revision: "3.1"
+wifi:
+  id: wifi_durum
+
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s
+  manual_ip:
+    static_ip: !secret wifi_static_ip
+    gateway: !secret wifi_gateway
+    subnet: !secret wifi_subnet
+    dns1: 1.1.1.1
+    dns2: 8.8.8.8
+
+# ========================================================
+# ESP-NOW: Ana cihazdan komut alma
+# ========================================================
+espnow:
+  enable_on_boot: true
+  auto_add_peer: true
+  on_receive:
+    - lambda: |-
+        char hex[256];
+        ESP_LOGD("espnow", "Paket alindi: %s", format_hex_pretty_to(hex, data, size));
+        
+        if (size < 1) {
+          ESP_LOGW("espnow", "Bos paket alindi, atlaniyor");
+          return;
+        }
+        
+        uint8_t komut = data[0];
+        
+        switch (komut) {
+          case 0x01:  // YEMLEME_KOMUTU
+            ESP_LOGI("espnow", "YEMLEME_KOMUTU alindi!");
+            id(yemleme_komutu_geldi) = true;
+            break;
+            
+          case 0x02:  // SERVO_ACI_AYARLA
+            if (size >= 2) {
+              int8_t aci = (int8_t)data[1];
+              ESP_LOGI("espnow", "Servo aci ayari: %d%%", aci);
+              id(servo_acisi_hedef) = aci;
+            }
+            break;
+            
+          case 0x03:  // DURUM_ISTE
+            ESP_LOGI("espnow", "Durum istegi alindi");
+            break;
+            
+          default:
+            ESP_LOGW("espnow", "Bilinmeyen komut: 0x%02X", komut);
+            break;
+        }
+
+logger:
+  level: DEBUG
+  baud_rate: 0
+
+api:
+  encryption:
+    key: "9kKnZ/GA8GOJkSP13pSMAyJK8xtURfB8yPVRTIeUdHk="
+
+ota:
+  - platform: esphome
+
+# ========================================================
+# OUTPUTS
+# ========================================================
+output:
+  - platform: ledc
+    pin: GPIO16
+    id: pwm_output
+    frequency: 50Hz
+
+  - platform: gpio
+    pin: GPIO4
+    id: flash_led
+
+# ========================================================
+# SERVO
+# ========================================================
+servo:
+  - id: feeder_servo
+    output: pwm_output
+    min_level: 0.025
+    idle_level: 0.075
+    max_level: 0.13
+
+# ========================================================
+# GLOBALS
+# ========================================================
+globals:
+  - id: yemleme_komutu_geldi
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: servo_acisi_hedef
+    type: int
+    restore_value: no
+    initial_value: "92"
+
+# ========================================================
+# SCRIPTS
+# ========================================================
+script:
+  - id: yemleme_script
+    mode: restart  # single yerine restart - tekrar tetiklenebilir
+    then:
+      # Komut bayragini sifirla ( kritik! )
+      - lambda: "id(yemleme_komutu_geldi) = false;"
+      
+      # Flash LED ac
+      - output.turn_on: flash_led
+      
+      # 1. Baslangic pozisyonu (kapali)
+      - servo.write:
+          id: feeder_servo
+          level: -100%
+      - delay: 300ms
+      
+      # 2. Kapak acma (yem dokulme)
+      - servo.write:
+          id: feeder_servo
+          level: !lambda "return id(servo_acisi_hedef) / 100.0;"
+      - delay: 1000ms
+      
+      # 3. Silkelenme (takilma onleme)
+      - servo.write:
+          id: feeder_servo
+          level: -100%
+      - delay: 500ms
+      - servo.write:
+          id: feeder_servo
+          level: -70%
+      - delay: 150ms
+      - servo.write:
+          id: feeder_servo
+          level: -100%
+      - delay: 150ms
+      
+      # 4. Servo kapat
+      - servo.detach: feeder_servo
+      
+      # Flash LED kapat
+      - output.turn_off: flash_led
+
+# ========================================================
+# INTERVALS
+# ========================================================
+interval:
+  - interval: 100ms
+    then:
+      - if:
+          condition:
+            lambda: "return id(yemleme_komutu_geldi);"
+          then:
+            - script.execute: yemleme_script
+
+  - interval: 30s
+    then:
+      - espnow.broadcast:
+          data: !lambda |-
+            uint8_t durum = id(yemleme_komutu_geldi) ? 0x01 : 0x00;
+            return {0x10, durum};
+      - logger.log: "Heartbeat gonderildi"

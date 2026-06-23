@@ -64,6 +64,7 @@ esp32:
   flash_size: 16MB
   framework:
     type: esp-idf
+
 external_components:
   - source:
       type: local
@@ -76,7 +77,7 @@ psram:
   speed: 80MHz
 
 logger:
-  level: DEBUG
+  level: VERBOSE
 
 api:
   encryption:
@@ -157,7 +158,17 @@ wifi:
     subnet: !secret wifi_subnet
     dns1: 8.8.8.8
     dns2: 1.1.1.1
-
+espnow:
+  enable_on_boot: true
+  auto_add_peer: true
+  peers:
+    - !secret servo_mac_address
+  on_receive:
+    - lambda: |-
+        if (size >= 2 && data[0] == 0x10) {
+          bool durum = data[1];
+          ESP_LOGI("espnow", "Servo cihazı durum: %s", durum ? "Yemleme yapıyor" : "Beklemede");
+        }
 captive_portal:
 button:
   - platform: template
@@ -188,21 +199,10 @@ i2c:
 
 output:
   - platform: ledc
-    id: pwm_output
-    pin: GPIO18 # önceden GPIO5 idi
-    frequency: 50Hz
-
-  - platform: ledc
     id: tft_led
     pin: GPIO6
     frequency: 1000Hz
 
-servo:
-  - id: yemleyici_servo
-    output: pwm_output
-    min_level: 0.025
-    idle_level: 0.075
-    max_level: 0.13
 # ============================================================
 # FONTLAR
 # ============================================================
@@ -384,6 +384,7 @@ font:
 # ============================================================
 lvgl:
   page_wrap: false
+  buffer_size: 25%
   id: lvgl_id
   displays:
     - ekranim
@@ -1445,14 +1446,34 @@ lvgl:
               - label: {id: lbl_boot_sys, text: "Sistem Çekirdeği OK", x: 42, y: 64, text_font: font_10, text_color: 0x10B981}
 
 script:
+  - id: espnow_yemleme_gonder
+    mode: queued
+    then:
+      - logger.log: "ESP-NOW: Yemleme komutu gönderiliyor..."
+      - espnow.send:
+          address: !secret servo_mac_address
+          data: [0x01]  # YEMLEME_KOMUTU
+      - logger.log: "ESP-NOW: Yemleme komutu gönderildi"
+
+  - id: espnow_servo_ayarla
+    mode: queued
+    then:
+      - logger.log: "ESP-NOW: Servo açı ayarı gönderiliyor..."
+      - espnow.send:
+          address: !secret servo_mac_address
+          data: !lambda |-
+            int8_t aci = (int8_t)id(servo_acisi).state;
+            return {0x02, (uint8_t)aci};
+      - logger.log: "ESP-NOW: Servo açı ayarı gönderildi"
+
   - id: yemleme_script
     mode: single
     then:
+      - script.execute: espnow_yemleme_gonder
       - lambda: |-
           id(feeding_now) = true;
       - logger.log: "Yemleme işlemi başlatıldı..."
 
-      # 1. ADIM: Eğer ekran uykudaysa uyandır ve tam uyanması için süre tanı (Açık kapatıldı)
       - if:
           condition:
             - lvgl.is_paused
@@ -1473,37 +1494,7 @@ script:
       # 3. ADIM: KRİTİK GÜVENLİK GECİKMESİ (Açık kapatıldı)
       # LVGL'in modalı ekrana eksiksiz çizmesi için 60ms süre tanıyoruz, ardından donduruyoruz.
       - delay: 60ms
-      - lvgl.pause:
-      - logger.log: "Arayüz ekrana basıldı ve LVGL duraklatıldı. İşlemci artık sadece servoda."
 
-      # 4. ADIM: Servo Hareketleri (İşlemci tamamen servonun emrinde, titreme sıfır)
-      - servo.write:
-          id: yemleyici_servo
-          level: -100%
-      - delay: 300ms
-
-      - servo.write:
-          id: yemleyici_servo
-          level: !lambda "return id(servo_acisi).state / 100.0;"
-      - delay: 1000ms
-
-      - servo.write:
-          id: yemleyici_servo
-          level: -100%
-      - delay: 500ms
-      
-      - servo.write:
-          id: yemleyici_servo
-          level: -70%
-      - delay: 150ms
-      
-      - servo.write:
-          id: yemleyici_servo
-          level: -100%
-      - delay: 150ms
-
-      # Servoyu kapat ve donanım LED'ini söndür
-      - servo.detach: yemleyici_servo
       - light.turn_off: rgb_led
 
       # 5. ADIM: Zaman Kaydı İşlemleri
@@ -1517,9 +1508,7 @@ script:
 
       # 6. ADIM: ÖNCE MOTORU AÇ, SONRA GİZLE (Açık kapatıldı)
       # LVGL motorunu canlandırıp ardından widget'ı güvenle kapatıp ekranı tazeletiyoruz.
-      - lvgl.resume:
       - lvgl.widget.hide: premium_feed_modal
-      - lvgl.widget.redraw:
       - logger.log: "Yemleme başarıyla tamamlandı, arayüz normale döndü."
 
 interval:
@@ -1742,6 +1731,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+  - id: servo_mac
+    type: uint8_t[6]
+    restore_value: no
+    initial_value: "{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}"
   - id: ekran_bos_saniye
     type: int
     restore_value: no
@@ -1875,7 +1868,7 @@ touchscreen:
   cs_pin: GPIO15
   spi_id: tft_spi
   interrupt_pin: GPIO16
-  update_interval: 50ms
+  update_interval: 500ms
   transform:
     mirror_x: false
     mirror_y: true
@@ -1886,11 +1879,14 @@ touchscreen:
     y_max: 3770
   on_release:
     - if:
-        condition: lvgl.is_paused
+        condition:
+          lambda: 'return !id(feeding_now);'
         then:
-          - lvgl.resume:
-          - lvgl.widget.redraw:
-          - light.turn_on: ekran_arka_isigi
+          - if:
+              condition: lvgl.is_paused
+              then:
+                - lvgl.resume:
+    
 # ============================================================
 # DS18B20
 # ============================================================
@@ -1910,11 +1906,16 @@ sensor:
     accuracy_decimals: 1
     on_value:
       then:
-        - lvgl.label.update:
-            id: water_temp_value
-            text:
-              format: "%.1f"
-              args: ['x']
+        - if:
+            condition:
+              lambda: 'return !id(feeding_now);'
+            then:
+              - lvgl.label.update:
+                  id: water_temp_value
+                  text:
+                    format: "%.1f"
+                    args: ['x']
+
   - platform: vl53l0x
     name: "Yem Seviyesi Sensörü"
     address: 0x29
@@ -1934,11 +1935,15 @@ sensor:
       - throttle_average: 30s
     on_value:
       then:
-        - lvgl.label.update:
-            id: distance_value
-            text:
-              format: "%.0f mm"
-              args: ['x']
+        - if:
+            condition:
+              lambda: 'return !id(feeding_now);'
+            then:
+              - lvgl.label.update:
+                  id: distance_value
+                  text:
+                    format: "%.0f mm"
+                    args: ['x']
   # 1. Ham Voltajı Okuyan ve Gerçek Pil Voltajına Dönüştüren Sensör
   - platform: adc
     pin: GPIO2

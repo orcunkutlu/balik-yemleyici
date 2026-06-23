@@ -425,10 +425,102 @@ lvgl:
         bg_color: 0x1976D2
         radius: 12
         text_color: 0xFFFFFF
+
+  bottom_layer:
+    bg_opa: 0%
+    pad_all: 0
+    widgets:
+      - obj:
+          id: navbar_container
+          align: BOTTOM_MID
+          x: 0
+          y: 0
+          width: 240
+          height: 40
+          bg_color: 0x070E1B
+          bg_opa: 95%
+          border_width: 0
+          radius: 0
+          pad_all: 0
+          hidden: false # Alt barın görünmesi için varsayılanı false yaptık
+          widgets:
+            - buttonmatrix:
+                id: footer_nav
+                x: 0
+                y: 0
+                width: 240
+                height: 40
+                align: CENTER
+                bg_color: 0x070E1B
+                text_font: mdi_icons
+                border_width: 0
+                pad_all: 0
+                pad_row: 0
+                pad_column: 0
+                one_checked: true
+                rows:
+                  - buttons:
+                      - id: nav_home
+                        text: "\U000F02DC"
+                        width: 1
+                        control:
+                          checkable: true
+                          checked: true
+                        on_press:
+                          then:
+                            - lvgl.page.show: page_home
+                            - lvgl.label.update: { id: header_title, text: "Ana Ekran" }
+                            - lvgl.matrix.button.update: { id: nav_home, control: {checked: true} }
+                            - lvgl.matrix.button.update: { id: nav_feed, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_log, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_set, control: {checked: false} }
+                                
+                      - id: nav_feed
+                        text: "\U000F0198"
+                        width: 1
+                        control:
+                          checkable: true
+                        on_press:
+                          then:
+                            - lvgl.page.show: page_feed
+                            - lvgl.label.update: { id: header_title, text: "Zamanlama Planı" }
+                            - lvgl.matrix.button.update: { id: nav_home, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_feed, control: {checked: true} }
+                            - lvgl.matrix.button.update: { id: nav_log, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_set, control: {checked: false} }
+                                
+                      - id: nav_log
+                        text: "\U000F0C9E"
+                        width: 1
+                        control:
+                          checkable: true
+                        on_press:
+                          then:
+                            - lvgl.page.show: page_log
+                            - lvgl.label.update: { id: header_title, text: "Sistem Kayıtları" }
+                            - lvgl.matrix.button.update: { id: nav_home, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_feed, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_log, control: {checked: true} }
+                            - lvgl.matrix.button.update: { id: nav_set, control: {checked: false} }
+                                
+                      - id: nav_set
+                        text: "\U000F0493"
+                        width: 1
+                        control:
+                          checkable: true
+                        on_press:
+                          then:
+                            - lvgl.page.show: page_settings
+                            - lvgl.label.update: { id: header_title, text: "Cihaz Ayarlar" }
+                            - lvgl.matrix.button.update: { id: nav_home, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_feed, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_log, control: {checked: false} }
+                            - lvgl.matrix.button.update: { id: nav_set, control: {checked: true} }
+
+  # ÜST KATMAN - Bildirimler, popup ve header gibi her şeyin üstünde ezerek duracak yapılar
   top_layer:
     bg_opa: 0%
     pad_all: 0
-    
     widgets:
       # GLOBAL HEADER
       - obj:
@@ -475,21 +567,22 @@ lvgl:
                 text_color: 0xEF4444
             - label:
                 id: header_power_icon
-                text: "\U000F1C3B" # Varsayılan olarak priz gösterilsin
-                text_color: 0x10B981 # Şık bir yeşil tonu (Adaptör modu)
+                text: "\U000F1C3B"
+                text_color: 0x10B981
                 width: 20
                 height: 20
-                x: 180 # Wi-Fi ikonunun konumuna göre yanına hizalıyoruz
+                x: 180
                 y: 10
                 text_font: mdi_icons
 
+      # BİLDİRİM KARTI (Yeniden isimlendirildi ve en üst katmanda güvene alındı)
       - obj:
-          id: nt_card
+          id: notification_card
           x: 4
           y: 150
           width: 232
-          hidden: true
           height: 60
+          hidden: true
           bg_color: 0x0A0A0A
           bg_opa: 95%
           border_width: 1
@@ -537,133 +630,7 @@ lvgl:
                 text_align: LEFT
                 long_mode: CLIP
                 text_font: montserrat_12
-      - obj:
-          id: navbar_container
-          align: BOTTOM_MID
-          x: 0
-          y: 0
-          width: 240
-          height: 40
-          bg_color: 0x070E1B
-          bg_opa: 95%
-          border_width: 0
-          radius: 0
-          pad_all: 0
-          hidden: true
-          widgets:
-            - buttonmatrix:
-                id: footer_nav
-                x: 0
-                y: 0
-                width: 240
-                height: 40
-                align: CENTER
-                bg_color: 0x070E1B
-                text_font: mdi_icons
-                border_width: 0
-                pad_all: 0
-                pad_row: 0
-                pad_column: 0
-                one_checked: true
-                
-                rows:
-                  - buttons:
-                      - id: nav_home
-                        text: "\U000F02DC"
-                        width: 1
-                        control:
-                          checkable: true
-                          checked: true
-                        on_press:
-                          then:
-                            - lvgl.page.show: page_home
-                            - lvgl.label.update:
-                                id: header_title
-                                text: "Ana Ekran"
-                            - lvgl.matrix.button.update:
-                                id: nav_home
-                                control: {checked: true}
-                            - lvgl.matrix.button.update:
-                                id: nav_feed
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_log
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_set
-                                control: {checked: false}
-                                    
-                      - id: nav_feed
-                        text: "\U000F0198"
-                        width: 1
-                        control:
-                          checkable: true
-                        on_press:
-                          then:
-                            - lvgl.page.show: page_feed
-                            - lvgl.label.update:
-                                id: header_title
-                                text: "Zamanlama Planı"
-                            - lvgl.matrix.button.update:
-                                id: nav_home
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_feed
-                                control: {checked: true}
-                            - lvgl.matrix.button.update:
-                                id: nav_log
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_set
-                                control: {checked: false}
-                                    
-                      - id: nav_log
-                        text: "\U000F0C9E"
-                        width: 1
-                        control:
-                          checkable: true
-                        on_press:
-                          then:
-                            - lvgl.page.show: page_log
-                            - lvgl.label.update:
-                                id: header_title
-                                text: "Sistem Kayıtları"
-                            - lvgl.matrix.button.update:
-                                id: nav_home
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_feed
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_log
-                                control: {checked: true}
-                            - lvgl.matrix.button.update:
-                                id: nav_set
-                                control: {checked: false}
-                                    
-                      - id: nav_set
-                        text: "\U000F0493"
-                        width: 1
-                        control:
-                          checkable: true
-                        on_press:
-                          then:
-                            - lvgl.page.show: page_settings
-                            - lvgl.label.update:
-                                id: header_title
-                                text: "Cihaz Ayarlar"
-                            - lvgl.matrix.button.update:
-                                id: nav_home
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_feed
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_log
-                                control: {checked: false}
-                            - lvgl.matrix.button.update:
-                                id: nav_set
-                                control: {checked: true}
+
   pages:
     - id: page_home
       bg_color: 0x111827
@@ -1410,7 +1377,7 @@ lvgl:
             width: 240
             height: 25
             text: "AQUA CONTROL"
-            text_font: font_16  # Akşam değiştirdiğiniz yeni font ismi
+            text_font: font_16
             text_align: CENTER
             text_color: 0xF1F5F9
 
@@ -1471,18 +1438,23 @@ script:
     then:
       - lambda: |-
           id(feeding_now) = true;
-      - logger.log: "Yemleme işlemi başladı, overlay aktif..."
-      - servo.write:
-          id: yemleyici_servo
-          level: -100%
-      - delay: 300ms
+      - logger.log: "Yemleme işlemi başladı."
       - if:
           condition:
             - lvgl.is_paused
           then:
           - lvgl.resume:
+          - lvgl.widget.redraw:
           - light.turn_on: ekran_arka_isigi
+      - lvgl.widget.show: notification_card
+      - delay: 50ms
 
+      - lvgl.pause:
+
+      - servo.write:
+          id: yemleyici_servo
+          level: -100%
+      - delay: 300ms
 
       - light.turn_on:
           id: rgb_led
@@ -1490,7 +1462,9 @@ script:
           red: 0%
           green: 0%
 
-      - lvgl.widget.show: nt_card
+      - lvgl.widget.show: notification_card
+      - lvgl.pause:
+
       - servo.write:
           id: yemleyici_servo
           level: !lambda "return id(servo_acisi).state / 100.0;"
@@ -1512,9 +1486,11 @@ script:
       - delay: 150ms
 
       - servo.detach: yemleyici_servo
+      
       - light.turn_off: rgb_led
-
-      # 6. ADIM: Zaman kaydı
+      - lvgl.resume:
+      - lvgl.widget.redraw:
+      - lvgl.widget.hide: notification_card
       - lambda: |-
           id(feeding_now) = false;
           auto now = id(internet_saati).now();
@@ -1522,7 +1498,6 @@ script:
           char buffer[6];
           sprintf(buffer, "%02d:%02d", now.hour, now.minute);
           id(son_yemleme_saati) = buffer;
-
       - logger.log: "Yemleme başarıyla tamamlandı, ana ekrana dönüldü."
 
 interval:
@@ -1891,7 +1866,6 @@ touchscreen:
     - if:
         condition: lvgl.is_paused
         then:
-          - logger.log: "LVGL resuming"
           - lvgl.resume:
           - lvgl.widget.redraw:
           - light.turn_on: ekran_arka_isigi
@@ -2113,7 +2087,7 @@ text_sensor:
     update_interval: 10s
     lambda: |-
       int total = (id(yemleme_1_aktif).state ? 1 : 0) + (id(yemleme_2_aktif).state ? 1 : 0) + (id(yemleme_3_aktif).state ? 1 : 0);
-      char buffer[16];
+      char buffer[4];
       sprintf(buffer, "Günde %d Kez", total);
       return std::string(buffer);
   - platform: uptime

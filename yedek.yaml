@@ -9,6 +9,9 @@ esphome:
     then:
       - lvgl.widget.hide: navbar_container
       - lvgl.widget.hide: hdr_shb_bar
+      - lvgl.bar.update:
+          id: boot_progress_bar
+          value: 0
       - lvgl.page.show: page_boot
 
       - delay: 1.5s
@@ -64,6 +67,7 @@ esp32:
   flash_size: 16MB
   framework:
     type: esp-idf
+
 external_components:
   - source:
       type: local
@@ -76,9 +80,10 @@ psram:
   speed: 80MHz
 
 logger:
-  level: VERBOSE
+  level: DEBUG
 
 api:
+  reboot_timeout: 0s
   encryption:
     key: "M7hZ9WDG0wVH8K3Hnq6YYGNfjz8UOD8FKq7JoPnZ94A="
 
@@ -152,11 +157,24 @@ wifi:
       - light.turn_off: rgb_led
 
   manual_ip:
-    static_ip: 192.168.1.69
+    static_ip: !secret wifi_static_ip
     gateway: !secret wifi_gateway
     subnet: !secret wifi_subnet
     dns1: 8.8.8.8
     dns2: 1.1.1.1
+espnow:
+  enable_on_boot: true
+  channel: 2
+  peers:
+    - !secret servo_mac_address
+  
+  # ESP32-CAM'den her 30s'de bir gelen Heartbeat / Durum verisini yakalar
+  on_receive:
+    - lambda: |-
+        if (size >= 2 && data[0] == 0x10) {
+          ESP_LOGI("espnow_rx", "Slave cihazdan durum paketi alindi. Durum kodu: 0x%02X", data[1]);
+          // İleride buraya alıcıdan gelen verilere göre tetiklenecek senaryolar eklenebilir
+        }
 
 captive_portal:
 button:
@@ -173,6 +191,29 @@ button:
                   format: "Yemleme zaten çalışıyor."
             else:
               - script.execute: yemleme_script
+              
+  - platform: template
+    name: "Yemlemeyi Başlat"
+    id: btn_yemleme_baslat
+    icon: "mdi:fish"
+    on_press:
+      then:
+        - espnow.send:
+            address: !secret servo_mac_address
+            data: [0x01]
+        - logger.log: "YEMLEME_KOMUTU (0x01) gönderildi."
+
+  # 2. Alıcı Cihazdan Durum Raporu İsteyen Buton (0x03 Komutu)
+  - platform: template
+    name: "Cihaz Durumunu Sorgula"
+    id: btn_durum_iste
+    icon: "mdi:refresh"
+    on_press:
+      then:
+        - espnow.send:
+            address: !secret servo_mac_address
+            data: [0x03]
+        - logger.log: "DURUM_ISTE (0x03) komutu gönderildi."
 
   - platform: restart
     id: system_restart_btn
@@ -188,21 +229,10 @@ i2c:
 
 output:
   - platform: ledc
-    id: pwm_output
-    pin: GPIO18 # önceden GPIO5 idi
-    frequency: 50Hz
-
-  - platform: ledc
     id: tft_led
     pin: GPIO6
     frequency: 1000Hz
 
-servo:
-  - id: yemleyici_servo
-    output: pwm_output
-    min_level: 0.025
-    idle_level: 0.075
-    max_level: 0.13
 # ============================================================
 # FONTLAR
 # ============================================================
@@ -591,13 +621,12 @@ lvgl:
           scrollbar_mode: "OFF"
           pad_all: 0
           widgets:
-            # Ortadaki Şık Kutu
             - obj:
                 align: CENTER
                 x: 0
                 y: -10
                 width: 200
-                height: 160
+                height: 190
                 bg_color: 0x070E1B   # Sizin projenin asil koyu laciverti
                 border_width: 1
                 border_color: 0x162038
@@ -643,6 +672,17 @@ lvgl:
                       text_color: 0x8E9FB8
                       text_font: font_10
                       text_align: CENTER
+                  - spinner:
+                      id: modal_spinner
+                      x: 0
+                      y: 120
+                      align: CENTER
+                      width: 40
+                      height: 40
+                      spin_time: 1000ms    # Çemberin 1 tam tur dönme süresi
+                      arc_length: 60       # Çember yayının uzunluğu (derece)
+                      line_width: 3        # Çemberin çizgi kalınlığı
+                      line_color: 0xFBBF24
 
   pages:
     - id: page_home
@@ -1446,21 +1486,34 @@ lvgl:
               - label: {id: lbl_boot_sys, text: "Sistem Çekirdeği OK", x: 42, y: 64, text_font: font_10, text_color: 0x10B981}
 
 script:
+  - id: espnow_yemleme_gonder
+    mode: queued
+    then:
+      - logger.log: "ESP-NOW: Yemleme komutu gönderiliyor..."
+      - espnow.send:
+          address: !secret servo_mac_address
+          data: [0x01]  # YEMLEME_KOMUTU
+      - logger.log: "ESP-NOW: Yemleme komutu gönderildi"
+
+  - id: espnow_servo_ayarla
+    mode: queued
+    then:
+      - logger.log: "ESP-NOW: Servo açı ayarı gönderiliyor..."
+      - espnow.send:
+          address: !secret servo_mac_address
+          data: !lambda |-
+            int8_t aci = (int8_t)id(servo_acisi).state;
+            return {0x02, (uint8_t)aci};
+      - logger.log: "ESP-NOW: Servo açı ayarı gönderildi"
+
   - id: yemleme_script
     mode: single
     then:
+      - script.execute: espnow_yemleme_gonder
       - lambda: |-
           id(feeding_now) = true;
       - logger.log: "Yemleme işlemi başlatıldı..."
 
-      # 1. ADIM: Eğer ekran uykudaysa uyandır ve tam uyanması için süre tanı (Açık kapatıldı)
-      - if:
-          condition:
-            - lvgl.is_paused
-          then:
-            - lvgl.resume:
-            - light.turn_on: ekran_arka_isigi
-            - delay: 100ms # Ekranın ve donanımın kendine gelme payı
 
       # 2. ADIM: Donanım LED'lerini yak ve Premium Arayüz Katmanını Aç
       - light.turn_on:
@@ -1469,57 +1522,16 @@ script:
           red: 0%
           green: 0%
 
-    #  - lvgl.widget.show: premium_feed_modal
       
       # 3. ADIM: KRİTİK GÜVENLİK GECİKMESİ (Açık kapatıldı)
       # LVGL'in modalı ekrana eksiksiz çizmesi için 60ms süre tanıyoruz, ardından donduruyoruz.
       - delay: 60ms
-      - lvgl.pause:
-      - logger.log: "Arayüz ekrana basıldı ve LVGL duraklatıldı. İşlemci artık sadece servoda."
 
-      # 4. ADIM: Servo Hareketleri (İşlemci tamamen servonun emrinde, titreme sıfır)
-      - servo.write:
-          id: yemleyici_servo
-          level: -100%
-      - delay: 300ms
-
-      - servo.write:
-          id: yemleyici_servo
-          level: !lambda "return id(servo_acisi).state / 100.0;"
-      - delay: 1000ms
-
-      - servo.write:
-          id: yemleyici_servo
-          level: -100%
-      - delay: 500ms
-      
-      - servo.write:
-          id: yemleyici_servo
-          level: -70%
-      - delay: 150ms
-      
-      - servo.write:
-          id: yemleyici_servo
-          level: -100%
-      - delay: 150ms
-
-      # Servoyu kapat ve donanım LED'ini söndür
-      - servo.detach: yemleyici_servo
       - light.turn_off: rgb_led
-
-      # 5. ADIM: Zaman Kaydı İşlemleri
-      - lambda: |-
-          id(feeding_now) = false;
-          auto now = id(internet_saati).now();
-          if (!now.is_valid()) return;
-          char buffer[6];
-          sprintf(buffer, "%02d:%02d", now.hour, now.minute);
-          id(son_yemleme_saati) = buffer;
+      - delay: 2200ms
 
       # 6. ADIM: ÖNCE MOTORU AÇ, SONRA GİZLE (Açık kapatıldı)
       # LVGL motorunu canlandırıp ardından widget'ı güvenle kapatıp ekranı tazeletiyoruz.
-      - lvgl.resume:
-  #    - lvgl.widget.hide: premium_feed_modal
       - logger.log: "Yemleme başarıyla tamamlandı, arayüz normale döndü."
 
 interval:
@@ -1742,6 +1754,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+  - id: servo_mac
+    type: uint8_t[6]
+    restore_value: no
+    initial_value: "{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}"
   - id: ekran_bos_saniye
     type: int
     restore_value: no
@@ -1795,6 +1811,28 @@ number:
     step: 1
     initial_value: 92
     restore_value: true
+
+  - platform: template
+    name: "Yemleme Kapağı Açısı"
+    id: num_servo_aci
+    icon: "mdi:angle-acute"
+    min_value: -100
+    max_value: 100
+    step: 5
+    initial_value: 92
+    unit_of_measurement: "%"
+    mode: slider
+    # Arayüzden açı değiştirildiğinde anında ESP-NOW ile Slave'e iletir
+    set_action:
+      then:
+        - espnow.send:
+            address: !secret servo_mac_address
+            data: !lambda |-
+              int8_t aci_degeri = (int8_t)x;
+              return {0x02, (uint8_t)aci_degeri};
+        - logger.log:
+            format: "SERVO_ACI_AYARLA (0x02) gönderildi. Yeni Değer: %.0f%%"
+            args: [ x ] # 284; Doğru Satır (Tırnaklar kaldırıldı)
 
   - platform: template
     name: Ekran Bekleme Süresi
@@ -1992,24 +2030,6 @@ sensor:
 
       return percentage;
 
-  - platform: template
-    name: "Serbest RAM"
-    id: free_heap_mb
-    unit_of_measurement: "MB"
-    accuracy_decimals: 2
-    update_interval: 10s
-    lambda: |-
-      return esp_get_free_heap_size() / 1024.0 / 1024.0;
-# Not: ESP-IDF üzerinde PSRAM için heap_caps_get_free_size(MALLOC_CAP_SPIRAM) da kullanılabilir.
-  - platform: template
-    name: "Serbest PSRAM"
-    id: free_psram_mb
-    unit_of_measurement: "MB"
-    accuracy_decimals: 2
-    update_interval: 10s
-    lambda: |-
-      return esp_get_free_internal_heap_size() / 1024.0 / 1024.0;  
-      
   - platform: uptime
     name: "Uptime Sensor"
     id: uptime_sensor_seconds
@@ -2054,8 +2074,6 @@ display:
 # ============================================================
 text_sensor:
   - platform: template
-    id: wifi_ikonu
-  - platform: template
     name: "Sonraki Yemleme"
     id: sonraki_yemleme
     icon: "mdi:clock-outline"
@@ -2086,35 +2104,6 @@ text_sensor:
       snprintf(buffer, sizeof(buffer), "%02d:%02d", next_feed / 60, next_feed % 60);
       return std::string(buffer);
 
-  - platform: template
-    name: "Sonraki Yemleme Hesaplayıcı"
-    id: sonraki_yemleme_hesapla
-    update_interval: 15s
-    lambda: |-
-      auto now = id(internet_saati).now();
-      if (!now.is_valid()) return std::string("--:--");
-      
-      int current_minute = now.hour * 60 + now.minute;
-      int feed1 = id(yemleme_1_aktif).state ? 8 * 60 + 0 : -1;
-      int feed2 = id(yemleme_2_aktif).state ? 19 * 60 + 0 : -1;
-      int feed3 = id(yemleme_3_aktif).state ? 22 * 60 + 0 : -1;
-      
-      int next_feed = -1;
-      if (feed1 > current_minute) next_feed = feed1;
-      if (feed2 > current_minute && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
-      if (feed3 > current_minute && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
-      
-      if (next_feed == -1) {
-        if (feed1 != -1) next_feed = feed1;
-        if (feed2 != -1 && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
-        if (feed3 != -1 && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
-      }
-      
-      if (next_feed == -1) return std::string("Yok");
-      
-      char buffer[16];
-      snprintf(buffer, sizeof(buffer), "%02d:%02d", next_feed / 60, next_feed % 60);
-      return std::string(buffer);
   - platform: template
     name: "Yemleme Döngüsü"
     id: yemleme_dongusu

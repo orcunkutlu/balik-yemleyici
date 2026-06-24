@@ -20,7 +20,7 @@ wifi:
   password: !secret wifi_password
   reboot_timeout: 0s
   manual_ip:
-    static_ip: !secret wifi_static_ip
+    static_ip: !secret servo_static_ip
     gateway: !secret wifi_gateway
     subnet: !secret wifi_subnet
     dns1: 1.1.1.1
@@ -31,7 +31,9 @@ wifi:
 # ========================================================
 espnow:
   enable_on_boot: true
-  auto_add_peer: true
+  channel: 2
+  peers:
+    - !secret baliktank_mac_address
   on_receive:
     - lambda: |-
         if (size < 1) {
@@ -73,6 +75,7 @@ logger:
   level: DEBUG
 
 api:
+  reboot_timeout: 0s
   encryption:
     key: "9kKnZ/GA8GOJkSP13pSMAyJK8xtURfB8yPVRTIeUdHk="
 
@@ -111,18 +114,6 @@ globals:
     restore_value: no
     initial_value: "92"
 
-text_sensor:
-  - platform: template
-    name: "Cihaz MAC Adresi"
-    id: mac_sensor
-    update_interval: 5s
-    lambda: |-
-      return get_mac_address_pretty();
-    on_value:
-      then:
-        - logger.log:
-            format: "Dinleyen ESP32 MAC Adresi: %s"
-            args: [ 'x.c_str()' ]
 # ========================================================
 # SCRIPTS
 # ========================================================
@@ -168,9 +159,10 @@ script:
   - id: durum_gonder_script
     mode: single
     then:
-      - espnow.broadcast:
+      - espnow.send:
+          address: !secret baliktank_mac_address
           data: [0x10, 0x01]
-      - logger.log: "Durum verisi/Heartbeat başarıyla yayınlandı."
+      - logger.log: "Durum verisi gönderildi."
 
 # ========================================================
 # INTERVALS

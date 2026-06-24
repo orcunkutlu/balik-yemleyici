@@ -1,11 +1,11 @@
 # ========================================================
-# BALIK YEMLEYICI V2
-# ESP32-CAM + OLED
+# BALIK YEMLEYICI SERVO MODÜLÜ
+# ESP32-CAM + SERVO
 # ========================================================
 
 esphome:
-  name: balik-yemleyici
-  friendly_name: Balik Yemleyici
+  name: balik-yemleyici-servo
+  friendly_name: Balık Yemleyici Servo
 
 esp32:
   board: esp32cam
@@ -16,7 +16,6 @@ esp32:
       minimum_chip_revision: "3.1"
 wifi:
   id: wifi_durum
-
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   reboot_timeout: 0s
@@ -35,9 +34,6 @@ espnow:
   auto_add_peer: true
   on_receive:
     - lambda: |-
-        char hex[256];
-        ESP_LOGD("espnow", "Paket alindi: %s", format_hex_pretty_to(hex, data, size));
-        
         if (size < 1) {
           ESP_LOGW("espnow", "Bos paket alindi, atlaniyor");
           return;
@@ -48,19 +44,24 @@ espnow:
         switch (komut) {
           case 0x01:  // YEMLEME_KOMUTU
             ESP_LOGI("espnow", "YEMLEME_KOMUTU alindi!");
-            id(yemleme_komutu_geldi) = true;
+            // Doğrudan scripti çağırıyoruz, interval karmaşasından kurtulduk
+            id(yemleme_script).execute();
             break;
             
           case 0x02:  // SERVO_ACI_AYARLA
             if (size >= 2) {
               int8_t aci = (int8_t)data[1];
-              ESP_LOGI("espnow", "Servo aci ayari: %d%%", aci);
+              // Değeri -100 ile 100 arasında sınırlar
+              if (aci < -100) aci = -100;
+              if (aci > 100) aci = 100;
+              ESP_LOGI("espnow", "Servo aci ayari güncellendi: %d%%", aci);
               id(servo_acisi_hedef) = aci;
             }
             break;
             
           case 0x03:  // DURUM_ISTE
             ESP_LOGI("espnow", "Durum istegi alindi");
+            id(durum_gonder_script).execute();
             break;
             
           default:
@@ -70,7 +71,6 @@ espnow:
 
 logger:
   level: DEBUG
-  baud_rate: 0
 
 api:
   encryption:
@@ -106,26 +106,31 @@ servo:
 # GLOBALS
 # ========================================================
 globals:
-  - id: yemleme_komutu_geldi
-    type: bool
-    restore_value: no
-    initial_value: "false"
   - id: servo_acisi_hedef
     type: int
     restore_value: no
     initial_value: "92"
 
+text_sensor:
+  - platform: template
+    name: "Cihaz MAC Adresi"
+    id: mac_sensor
+    update_interval: 5s
+    lambda: |-
+      return get_mac_address_pretty();
+    on_value:
+      then:
+        - logger.log:
+            format: "Dinleyen ESP32 MAC Adresi: %s"
+            args: [ 'x.c_str()' ]
 # ========================================================
 # SCRIPTS
 # ========================================================
 script:
   - id: yemleme_script
-    mode: restart  # single yerine restart - tekrar tetiklenebilir
+    mode: restart  
     then:
-      # Komut bayragini sifirla ( kritik! )
-      - lambda: "id(yemleme_komutu_geldi) = false;"
-      
-      # Flash LED ac
+      # Flaş LED aç
       - output.turn_on: flash_led
       
       # 1. Baslangic pozisyonu (kapali)
@@ -154,28 +159,23 @@ script:
           level: -100%
       - delay: 150ms
       
-      # 4. Servo kapat
+      # 4. Servo enerjisini kes (Isınmayı ve titremeyi önler)
       - servo.detach: feeder_servo
       
-      # Flash LED kapat
+      # Flaş LED kapat
       - output.turn_off: flash_led
+
+  - id: durum_gonder_script
+    mode: single
+    then:
+      - espnow.broadcast:
+          data: [0x10, 0x01]
+      - logger.log: "Durum verisi/Heartbeat başarıyla yayınlandı."
 
 # ========================================================
 # INTERVALS
 # ========================================================
 interval:
-  - interval: 100ms
-    then:
-      - if:
-          condition:
-            lambda: "return id(yemleme_komutu_geldi);"
-          then:
-            - script.execute: yemleme_script
-
   - interval: 30s
     then:
-      - espnow.broadcast:
-          data: !lambda |-
-            uint8_t durum = id(yemleme_komutu_geldi) ? 0x01 : 0x00;
-            return {0x10, durum};
-      - logger.log: "Heartbeat gonderildi"
+      - script.execute: durum_gonder_script

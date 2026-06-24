@@ -9,6 +9,9 @@ esphome:
     then:
       - lvgl.widget.hide: navbar_container
       - lvgl.widget.hide: hdr_shb_bar
+      - lvgl.bar.update:
+          id: boot_progress_bar
+          value: 0
       - lvgl.page.show: page_boot
 
       - delay: 1.5s
@@ -616,13 +619,12 @@ lvgl:
           scrollbar_mode: "OFF"
           pad_all: 0
           widgets:
-            # Ortadaki Şık Kutu
             - obj:
                 align: CENTER
                 x: 0
                 y: -10
                 width: 200
-                height: 160
+                height: 190
                 bg_color: 0x070E1B   # Sizin projenin asil koyu laciverti
                 border_width: 1
                 border_color: 0x162038
@@ -668,6 +670,17 @@ lvgl:
                       text_color: 0x8E9FB8
                       text_font: font_10
                       text_align: CENTER
+                  - spinner:
+                      id: modal_spinner
+                      x: 0
+                      y: 120
+                      align: CENTER
+                      width: 40
+                      height: 40
+                      spin_time: 1000ms    # Çemberin 1 tam tur dönme süresi
+                      arc_length: 60       # Çember yayının uzunluğu (derece)
+                      line_width: 3        # Çemberin çizgi kalınlığı
+                      line_color: 0xFBBF24
 
   pages:
     - id: page_home
@@ -1521,6 +1534,7 @@ script:
       - delay: 60ms
 
       - light.turn_off: rgb_led
+      - delay: 2200ms
 
       # 5. ADIM: Zaman Kaydı İşlemleri
       - lambda: |-

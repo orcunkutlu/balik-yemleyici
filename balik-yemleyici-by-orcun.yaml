@@ -1131,11 +1131,15 @@ lvgl:
                     - label: {id: txt_plan_status_btn, text: "AÇ", align: CENTER, text_font: font_10, text_color: 0xFFFFFF}
                   on_click:
                     then:
+                      # 1. ADIM: Önce seçili planın switch durumunu tersine çeviriyoruz (Aç ise Kapat, Kapalı ise Aç)
                       - lambda: |-
                           int p = id(secili_plan);
                           if (p == 1) id(yemleme_1_aktif).toggle();
                           else if (p == 2) id(yemleme_2_aktif).toggle();
                           else if (p == 3) id(yemleme_3_aktif).toggle();
+                      - delay: 50ms
+
+                      # 2. ADIM: Buton üzerindeki yazıyı yeni duruma göre güncelliyoruz (AÇ / KAPAT)
                       - lvgl.label.update:
                           id: txt_plan_status_btn
                           text: !lambda |-
@@ -1144,6 +1148,8 @@ lvgl:
                             else if (id(secili_plan) == 2) aktif = id(yemleme_2_aktif).state;
                             else if (id(secili_plan) == 3) aktif = id(yemleme_3_aktif).state;
                             return aktif ? "KAPAT" : "AÇ";
+
+                      # 3. ADIM: Ekrandaki durum etiketini yeni duruma göre güncelliyoruz (Plan Aktif / Plan Pasif)
                       - lvgl.label.update:
                           id: txt_plan_durum_etiket
                           text: !lambda |-
@@ -1152,6 +1158,8 @@ lvgl:
                             else if (id(secili_plan) == 2) aktif = id(yemleme_2_aktif).state;
                             else if (id(secili_plan) == 3) aktif = id(yemleme_3_aktif).state;
                             return aktif ? "Plan Aktif" : "Plan Pasif";
+
+                      - script.execute: plan_isigi_guncelle
 
               # Saat Arttır/Azalt Blokları
               - button:
@@ -1616,6 +1624,23 @@ script:
       - script.execute: yemleme_guncellemesi_ekran
       - lvgl.widget.hide: premium_feed_modal
       - logger.log: "Yemleme başarıyla tamamlandı."
+  - id: plan_isigi_guncelle
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: |-
+              if (id(secili_plan) == 1) return id(yemleme_1_aktif).state;
+              if (id(secili_plan) == 2) return id(yemleme_2_aktif).state;
+              return id(yemleme_3_aktif).state;
+          then: 
+            - light.turn_on:
+                id: plan_aktif_isik
+                red: 0%      
+                green: 100%  
+                blue: 0%     
+          else: 
+            - light.turn_off: plan_aktif_isik
   - id: akilli_yemleme_kontrolu
     mode: single
     then:
@@ -1639,23 +1664,27 @@ script:
             
             ESP_LOGD("ZAMAN_MOTORU", "Yeni dakika kontrolü yapılıyor: %02d:%02d", aktif_saat.hour, aktif_saat.minute);
 
-            // 1. Ekran Üzerinden Ayarlanan Dinamik Plan Kontrolü
-            if (id(plan_aktif) && aktif_saat.hour == id(plan_saat) && aktif_saat.minute == id(plan_dakika)) {
-              ESP_LOGI("ZAMAN_MOTORU", "Arayüz planı zamanı geldi!");
+            // 1. Plan Kontrolü (yemleme_sira_1)
+            if (id(yemleme_1_aktif).state && 
+                aktif_saat.hour == id(yemleme_sira_1).hour && 
+                aktif_saat.minute == id(yemleme_sira_1).minute) {
+              ESP_LOGI("ZAMAN_MOTORU", "Plan 1 zamanı geldi! Saat: %02d:%02d", id(yemleme_sira_1).hour, id(yemleme_sira_1).minute);
               id(yemleme_script).execute();
             }
             
-            // 2. Sabit Zamanlı Plan Kontrolleri
-            if (id(yemleme_1_aktif).state && aktif_saat.hour == 8 && aktif_saat.minute == 0) {
-              ESP_LOGI("ZAMAN_MOTORU", "Sabit Plan 1 (08:00) tetiklendi.");
+            // 2. Plan Kontrolü (yemleme_sira_2)
+            if (id(yemleme_2_aktif).state && 
+                aktif_saat.hour == id(yemleme_sira_2).hour && 
+                aktif_saat.minute == id(yemleme_sira_2).minute) {
+              ESP_LOGI("ZAMAN_MOTORU", "Plan 2 zamanı geldi! Saat: %02d:%02d", id(yemleme_sira_2).hour, id(yemleme_sira_2).minute);
               id(yemleme_script).execute();
             }
-            if (id(yemleme_2_aktif).state && aktif_saat.hour == 19 && aktif_saat.minute == 0) {
-              ESP_LOGI("ZAMAN_MOTORU", "Sabit Plan 2 (19:00) tetiklendi.");
-              id(yemleme_script).execute();
-            }
-            if (id(yemleme_3_aktif).state && aktif_saat.hour == 22 && aktif_saat.minute == 0) {
-              ESP_LOGI("ZAMAN_MOTORU", "Sabit Plan 3 (22:00) tetiklendi.");
+            
+            // 3. Plan Kontrolü (yemleme_sira_3)
+            if (id(yemleme_3_aktif).state && 
+                aktif_saat.hour == id(yemleme_sira_3).hour && 
+                aktif_saat.minute == id(yemleme_sira_3).minute) {
+              ESP_LOGI("ZAMAN_MOTORU", "Plan 3 zamanı geldi! Saat: %02d:%02d", id(yemleme_sira_3).hour, id(yemleme_sira_3).minute);
               id(yemleme_script).execute();
             }
           }
@@ -1719,23 +1748,6 @@ interval:
             char buf[6];
             snprintf(buf, sizeof(buf), "%02d:%02d", aktif_saat.hour, aktif_saat.minute);
             return std::string(buf);
-
-  - interval: 2s
-    then:   
-      - if:
-          condition:
-            lambda: |-
-              if (id(secili_plan) == 1) return id(yemleme_1_aktif).state;
-              if (id(secili_plan) == 2) return id(yemleme_2_aktif).state;
-              return id(yemleme_3_aktif).state;
-          then: 
-            - light.turn_on:
-                id: plan_aktif_isik
-                red: 0%      
-                green: 100%  
-                blue: 0%     
-          else: 
-            - light.turn_off: plan_aktif_isik
 
   - interval: 10s
     then:
@@ -1813,36 +1825,10 @@ globals:
     type: int
     restore_value: no
     initial_value: "1"
-  - id: sistem_hazir
-    type: bool
-    restore_value: no
-    initial_value: "false"
-
-  - id: boot_yuzde
-    type: int
-    restore_value: no
-    initial_value: "0"
-
   - id: son_yemleme_saati
     type: std::string
     restore_value: yes
     initial_value: '"--:--"'
-
-  - id: yem_seviyesi_yuzde
-    type: int
-    restore_value: no
-    initial_value: "72"
-
-  - id: plan_saat
-    type: int
-    restore_value: yes
-    initial_value: "8"
-
-  - id: plan_dakika
-    type: int
-    restore_value: yes
-    initial_value: "0"
-
   - id: plan_aktif
     type: bool
     restore_value: yes
@@ -1850,26 +1836,17 @@ globals:
 
 number:
   - platform: template
-    name: "Servo Açısı"
+    name: "Yemleyici Servo Açısı"
     id: servo_acisi
+    icon: "mdi:angle-acute"
     optimistic: true
     min_value: -100
     max_value: 100
-    step: 1
-    initial_value: 92
+    step: 2
     restore_value: true
-
-  - platform: template
-    name: "Yemleme Kapağı Açısı"
-    id: num_servo_aci
-    icon: "mdi:angle-acute"
-    min_value: -100
-    max_value: 100
-    step: 5
     initial_value: 92
     unit_of_measurement: "%"
     mode: slider
-    # Arayüzden açı değiştirildiğinde anında ESP-NOW ile Slave'e iletir
     set_action:
       then:
         - espnow.send:
@@ -1914,18 +1891,30 @@ switch:
     id: yemleme_1_aktif
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - script.execute: plan_isigi_guncelle
+    on_turn_off:
+      - script.execute: plan_isigi_guncelle
 
   - platform: template
     name: "Yemleme 2 Aktif"
     id: yemleme_2_aktif
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - script.execute: plan_isigi_guncelle
+    on_turn_off:
+      - script.execute: plan_isigi_guncelle
 
   - platform: template
     name: "Yemleme 3 Aktif"
     id: yemleme_3_aktif
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - script.execute: plan_isigi_guncelle
+    on_turn_off:
+      - script.execute: plan_isigi_guncelle
     
 datetime:
   - platform: template
@@ -2105,8 +2094,7 @@ text_sensor:
   - platform: template
     name: "Sonraki Yemleme"
     id: sonraki_yemleme
-    icon: "mdi:clock-outline"
-    update_interval: 60s
+    update_interval: 10s
     lambda: |-
       ESPTime now;
       if (id(internet_saati).now().is_valid()) {
@@ -2114,30 +2102,66 @@ text_sensor:
       } else if (id(rtc_saati).now().is_valid()) {
         now = id(rtc_saati).now();
       } else {
-        return std::string("Senkron...");
+        return std::string("Zaman Bekleniyor...");
       }
-      
-      int current_minute = now.hour * 60 + now.minute;
-      int feed1 = id(yemleme_1_aktif).state ? 8 * 60 + 0 : -1;
-      int feed2 = id(yemleme_2_aktif).state ? 19 * 60 + 0 : -1;
-      int feed3 = id(yemleme_3_aktif).state ? 22 * 60 + 0 : -1;
-      
-      int next_feed = -1;
-      if (feed1 > current_minute) next_feed = feed1;
-      if (feed2 > current_minute && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
-      if (feed3 > current_minute && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
-      
-      if (next_feed == -1) {
-        if (feed1 != -1) next_feed = feed1;
-        if (feed2 != -1 && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
-        if (feed3 != -1 && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
+
+      // Şu anki zamanı gece yarısından itibaren toplam dakika cinsine çeviriyoruz
+      int simdi_dk = now.hour * 60 + now.minute;
+      int en_yakin_fark = 9999;
+      std::string sonraki_plan_adi = "";
+      int hedef_saat = 0, hedef_dakika = 0;
+      bool herhangi_biri_aktif = false;
+
+      // ---- PLAN 1 KONTROL ----
+      if (id(yemleme_1_aktif).state) {
+        herhangi_biri_aktif = true;
+        int p1_dk = id(yemleme_sira_1).hour * 60 + id(yemleme_sira_1).minute;
+        int fark = p1_dk - simdi_dk;
+        if (fark <= 0) fark += 1440; // Eğer saat geçtiyse yarına at (1440 dk = 24 saat)
+        if (fark < en_yakin_fark) {
+          en_yakin_fark = fark;
+          sonraki_plan_adi = "Plan 1";
+          hedef_saat = id(yemleme_sira_1).hour;
+          hedef_dakika = id(yemleme_sira_1).minute;
+        }
       }
-      
-      if (next_feed == -1) return std::string("Yok");
-      
-      char buffer[16];
-      snprintf(buffer, sizeof(buffer), "%02d:%02d", next_feed / 60, next_feed % 60);
-      return std::string(buffer);
+
+      // ---- PLAN 2 KONTROL ----
+      if (id(yemleme_2_aktif).state) {
+        herhangi_biri_aktif = true;
+        int p2_dk = id(yemleme_sira_2).hour * 60 + id(yemleme_sira_2).minute;
+        int fark = p2_dk - simdi_dk;
+        if (fark <= 0) fark += 1440;
+        if (fark < en_yakin_fark) {
+          en_yakin_fark = fark;
+          sonraki_plan_adi = "Plan 2";
+          hedef_saat = id(yemleme_sira_2).hour;
+          hedef_dakika = id(yemleme_sira_2).minute;
+        }
+      }
+
+      // ---- PLAN 3 KONTROL ----
+      if (id(yemleme_3_aktif).state) {
+        herhangi_biri_aktif = true;
+        int p3_dk = id(yemleme_sira_3).hour * 60 + id(yemleme_sira_3).minute;
+        int fark = p3_dk - simdi_dk;
+        if (fark <= 0) fark += 1440;
+        if (fark < en_yakin_fark) {
+          en_yakin_fark = fark;
+          sonraki_plan_adi = "Plan 3";
+          hedef_saat = id(yemleme_sira_3).hour;
+          hedef_dakika = id(yemleme_sira_3).minute;
+        }
+      }
+
+      if (!herhangi_biri_aktif) {
+        return std::string("Aktif Plan Yok");
+      }
+
+      // Ekrana basılacak format: "Plan 1 (08:30)"
+      char buf[32];
+      snprintf(buf, sizeof(buf), "%s (%02d:%02d)", sonraki_plan_adi.c_str(), hedef_saat, hedef_dakika);
+      return std::string(buf);
 
   - platform: template
     name: "Yemleme Döngüsü"

@@ -1,6 +1,6 @@
 # ========================================================
 # BALIK YEMLEYICI SERVO MODÜLÜ
-# ESP32-CAM + SERVO
+# ESP32-CAM AI-Thinker + SERVO + Vl53l0X
 # ========================================================
 
 esphome:
@@ -82,8 +82,8 @@ api:
 ota:
   - platform: esphome
 i2c:
-  - sda: GPIO14
-    scl: GPIO15
+  - sda: GPIO13
+    scl: GPIO14
     scan: true
     frequency: 100kHz
 # ========================================================
@@ -102,7 +102,7 @@ output:
 # SERVO
 # ========================================================
 servo:
-  - id: feeder_servo
+  - id: yemleyici_servo
     output: pwm_output
     min_level: 0.025
     idle_level: 0.075
@@ -110,8 +110,10 @@ servo:
 # ========================================================
 # YEM SEVİYESİ SENSÖRÜ
 # ========================================================
+sensor:
   - platform: vl53l0x
     name: "Yem Seviyesi Sensörü"
+    id: yem_seviyesi_sensoru
     address: 0x29
     update_interval: 5s
     long_range: false
@@ -150,32 +152,32 @@ script:
       
       # 1. Baslangic pozisyonu (kapali)
       - servo.write:
-          id: feeder_servo
+          id: yemleyici_servo
           level: -100%
       - delay: 300ms
       
       # 2. Kapak acma (yem dokulme)
       - servo.write:
-          id: feeder_servo
+          id: yemleyici_servo
           level: !lambda "return id(servo_acisi_hedef) / 100.0;"
       - delay: 1000ms
       
       # 3. Silkelenme (takilma onleme)
       - servo.write:
-          id: feeder_servo
+          id: yemleyici_servo
           level: -100%
       - delay: 500ms
       - servo.write:
-          id: feeder_servo
+          id: yemleyici_servo
           level: -70%
       - delay: 150ms
       - servo.write:
-          id: feeder_servo
+          id: yemleyici_servo
           level: -100%
       - delay: 150ms
       
       # 4. Servo enerjisini kes (Isınmayı ve titremeyi önler)
-      - servo.detach: feeder_servo
+      - servo.detach: yemleyici_servo
       
       # Flaş LED kapat
       - output.turn_off: flash_led

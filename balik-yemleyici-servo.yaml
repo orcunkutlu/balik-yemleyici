@@ -112,25 +112,43 @@ servo:
 # ========================================================
 sensor:
   - platform: vl53l0x
-    name: "Yem Seviyesi Sensörü"
+    name: "Yem Seviyesi Yüzdesi"
     id: yem_seviyesi_sensoru
     address: 0x29
     update_interval: 5s
     long_range: false
     timeout: 100ms
-    unit_of_measurement: "mm"
+    unit_of_measurement: "%"
     accuracy_decimals: 0
     filters:
+      - clamp:
+          min_value: 0
+          max_value: 100
+          ignore_out_of_range: true
       - filter_out: nan
       - multiply: 1000.0
+      # Örnek penceresini 10 yaptık, böylece anlık zıplamaları daha iyi yutar
       - median:
-          window_size: 5
+          window_size: 10
           send_every: 1
-          send_first_at: 1
+      # 100% noktasını 22mm'ye çektik (Tolerans Bölgesi oluşturuldu)
+      - calibrate_linear:
+          - 56.0 -> 0.0
+          - 20.0 -> 100.0
+      # 22mm altındaki tüm dalgalanmaları %100'e sabitler
       - throttle_average: 30s
     on_value:
       then:
         - script.execute: yem_seviyesi_gonder
+switch:
+  - platform: template
+    name: "ESP WiFi Toggle"
+    icon: "mdi:wifi"
+    turn_on_action:
+      - wifi.enable
+    turn_off_action:
+      - wifi.disable
+
 # ========================================================
 # GLOBALS
 # ========================================================
@@ -199,8 +217,8 @@ script:
             uint16_t mesafe = (uint16_t)id(yem_seviyesi_sensoru).state;
             uint8_t high_byte = (mesafe >> 8) & 0xFF;
             uint8_t low_byte = mesafe & 0xFF;
-            return {0x02, high_byte, low_byte};
-      - logger.log: "Yem seviyesi (0x02) ESP-NOW ile gönderildi."
+            return {0x03, high_byte, low_byte};
+      - logger.log: "Yem seviyesi (0x03) ESP-NOW ile gönderildi."
 # ========================================================
 # INTERVALS
 # ========================================================

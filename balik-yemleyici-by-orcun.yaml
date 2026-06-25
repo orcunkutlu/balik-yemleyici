@@ -165,29 +165,36 @@ espnow:
     - !secret servo_mac_address
   on_receive:
     - lambda: |-
-        if (size < 1) return; // Güvenlik kontrolü: Boş paket geldiyse işlem yapma
-        uint8_t komut_kodu = data[0]; // Paketin başındaki kimlik kartı
+        if (size < 1) return;
+        uint8_t komut_kodu = data[0];
         switch (komut_kodu) {
-          case 0x02: // YEM SEVİYESİ PAKETİ
+          case 0x03:
             if (size >= 3) {
               uint16_t mesafe_mm = (data[1] << 8) | data[2];
-              ESP_LOGI("EspNow_servo", "[0x02] Servo cihazından yem seviyesi alındı: %u mm", mesafe_mm);
+              ESP_LOGI("EspNow_Servo", "[0x03] Servo cihazından yem seviyesi alındı: %u %%", mesafe_mm);
               id(yem_seviyesi_sensor).publish_state(mesafe_mm);
             }
             break;
-            
-          case 0x03: // İLERİDE EKLENEBİLECEK BATARYA PAKETİ ÖRNEĞİ
+
+          case 0x10:
             if (size >= 2) {
-              ESP_LOGI("EspNow_servo", "[0x03] Servo batarya seviyesi: %%%d", data[1]);
-              // Buraya batarya sensörünü güncelleme kodu gelebilir
+              uint8_t durum_kodu = data[1];
+              ESP_LOGI("EspNow_Servo", "[0x10] Servo modülü çevrimiçi (Ayakta). Durum Kodu: 0x%02X", durum_kodu);
+              // İleride ana ekrana "Servo Bağlantısı: OK" yazdırmak istersen 
+              // burayı bir template binary_sensor tetiklemek için kullanabiliriz.
             }
             break;
             
-          default: // BİZİM TANIMLAMADIĞIMIZ BİR VERİ GELİRSE
-            ESP_LOGW("EspNow_servo", "Bilinmeyen komut kodu alındı: 0x%02X", komut_kodu);
+          case 0x02:
+            if (size >= 2) {
+              ESP_LOGI("EspNow_Servo", "[0x02] Servo batarya seviyesi: %%%d", data[1]);
+            }
+            break;
+            
+          default:
+            ESP_LOGW("EspNow_Servo", "Bilinmeyen komut kodu alındı: 0x%02X", komut_kodu);
             break;
         }
-
 captive_portal:
 button:
    
@@ -1887,6 +1894,14 @@ number:
 
 switch:
   - platform: template
+    name: "ESP WiFi Toggle"
+    icon: "mdi:wifi"
+    turn_on_action:
+      - wifi.enable
+    turn_off_action:
+      - wifi.disable
+
+  - platform: template
     name: "Yemleme 1 Aktif"
     id: yemleme_1_aktif
     optimistic: true
@@ -1991,14 +2006,14 @@ sensor:
   - platform: template
     name: "Yem Seviyesi"
     id: yem_seviyesi_sensor
-    unit_of_measurement: "mm"
+    unit_of_measurement: "%"
     accuracy_decimals: 0
     on_value:
       then:
         - lvgl.label.update:
             id: distance_value
             text:
-              format: "%.0f mm"
+              format: "%.0f %%"
               args: ['x']
   # 1. Ham Voltajı Okuyan ve Gerçek Pil Voltajına Dönüştüren Sensör
   - platform: adc

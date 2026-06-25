@@ -81,7 +81,11 @@ api:
 
 ota:
   - platform: esphome
-
+i2c:
+  - sda: GPIO14
+    scl: GPIO15
+    scan: true
+    frequency: 100kHz
 # ========================================================
 # OUTPUTS
 # ========================================================
@@ -94,7 +98,6 @@ output:
   - platform: gpio
     pin: GPIO4
     id: flash_led
-
 # ========================================================
 # SERVO
 # ========================================================
@@ -104,7 +107,28 @@ servo:
     min_level: 0.025
     idle_level: 0.075
     max_level: 0.13
-
+# ========================================================
+# YEM SEVİYESİ SENSÖRÜ
+# ========================================================
+  - platform: vl53l0x
+    name: "Yem Seviyesi Sensörü"
+    address: 0x29
+    update_interval: 5s
+    long_range: false
+    timeout: 100ms
+    unit_of_measurement: "mm"
+    accuracy_decimals: 0
+    filters:
+      - filter_out: nan
+      - multiply: 1000.0
+      - median:
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+      - throttle_average: 30s
+    on_value:
+      then:
+        - script.execute: yem_seviyesi_gonder
 # ========================================================
 # GLOBALS
 # ========================================================
@@ -164,6 +188,17 @@ script:
           data: [0x10, 0x01]
       - logger.log: "Durum verisi gönderildi."
 
+  - id: yem_seviyesi_gonder
+    mode: single
+    then:
+      - espnow.send:
+          address: !secret baliktank_mac_address
+          data: !lambda |-
+            uint16_t mesafe = (uint16_t)id(yem_seviyesi_sensoru).state;
+            uint8_t high_byte = (mesafe >> 8) & 0xFF;
+            uint8_t low_byte = mesafe & 0xFF;
+            return {0x02, high_byte, low_byte};
+      - logger.log: "Yem seviyesi (0x02) ESP-NOW ile gönderildi."
 # ========================================================
 # INTERVALS
 # ========================================================

@@ -1940,7 +1940,6 @@ sensor:
             snprintf(buf, sizeof(buf), "%s", icon.c_str());
             return buf;
 
-
   - platform: uptime
     name: "Uptime Sensor"
     id: uptime_sensor_seconds

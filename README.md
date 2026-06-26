@@ -1,2 +1,177 @@
-# balik-yemleyici
-# balik-yemleyici
+<p align="center">
+  <img src="resimler/logom.png" alt="Balık Yemleyici By Orçun KUTLU Logo" width="180">
+</p>
+
+<h1 align="center">Balık Yemleyici By Orçun KUTLU</h1>
+
+ESPHome ile hazırlanmış, dokunmatik ekranlı ve Home Assistant uyumlu otomatik balık yemleyici projesi.
+
+Proje iki ESP32 cihazdan oluşur:
+
+- **Ana kontrol ünitesi**: ESP32-S3 üzerinde LVGL arayüz, TFT dokunmatik ekran, saat, sıcaklık, pil/şebeke takibi ve yemleme planlarını yönetir.
+- **Servo modülü**: ESP32-CAM üzerinde servo motoru ve VL53L0X yem seviyesi sensörünü yönetir. Ana ünite ile ESP-NOW üzerinden haberleşir.
+
+![Sistem şeması](resimler/sistem_schema.png)
+
+## Özellikler
+
+- 2.4" 240x320 ILI9341 TFT ekran ve XPT2046 dokunmatik kontrol.
+- LVGL tabanlı yerel ekran arayüzü.
+- Günde 3 ayrı yemleme planı.
+- Manuel yemleme başlatma.
+- Servo açıklık yüzdesi ayarı.
+- ESP-NOW ile ana cihaz/servo modülü haberleşmesi.
+- VL53L0X ile yem seviyesi ölçümü.
+- DS3231 RTC desteği ve NTP senkronizasyonu.
+- İnternet yokken RTC üzerinden zaman takibi.
+- DS18B20 su sıcaklığı ölçümü.
+- Pil voltajı, pil yüzdesi ve şebeke gücü takibi.
+- Wi-Fi, web arayüzü, OTA ve Home Assistant API desteği.
+- RGB LED durum bildirimleri.
+
+## Dosya Yapısı
+
+```text
+.
+├── balik-yemleyici-by-orcun.yaml   # Ana ESP32-S3 kontrol ünitesi
+├── balik-yemleyici-servo.yaml      # ESP32-CAM servo/yem seviyesi modülü
+├── balik-yemleyici.yaml            # Eski/alternatif ana yapılandırma
+├── yedek.yaml                      # Yedek yapılandırma
+├── components/ds3231/              # Yerel DS3231 ESPHome bileşeni
+├── fonts/                          # Ekranda kullanılan fontlar
+├── resimler/                       # Logo ve sistem şeması
+└── secrets.yaml                    # Wi-Fi, IP ve MAC bilgileri
+```
+
+## Donanım
+
+### Ana Kontrol Ünitesi
+
+| Parça | Açıklama |
+| --- | --- |
+| ESP32-S3-DevKitC-1-N16R8 | 16 MB flash, 8 MB PSRAM |
+| ILI9341 TFT ekran | 240x320 SPI ekran |
+| XPT2046 touch controller | Dokunmatik giriş |
+| DS3231 RTC | Yedek gerçek zaman saati |
+| DS18B20 | Su sıcaklığı sensörü |
+| WS2812 RGB LED | Durum bildirim LED'i |
+| Pil voltaj bölücü | ADC ile pil ölçümü |
+| Şebeke algılama girişi | Adaptör/pil modu takibi |
+
+### Servo Modülü
+
+| Parça | Açıklama |
+| --- | --- |
+| ESP32-CAM AI Thinker | Servo modülü kontrol kartı |
+| Servo motor | Yem kapağını açıp kapatır |
+| VL53L0X | Yem haznesi seviye ölçümü |
+| Flash LED | Yemleme sırasında durum ışığı |
+
+## Pin Bağlantıları
+
+### Ana Kontrol Ünitesi
+
+| İşlev | Pin |
+| --- | --- |
+| TFT SPI CLK | GPIO12 |
+| TFT SPI MOSI | GPIO11 |
+| TFT SPI MISO | GPIO13 |
+| TFT CS | GPIO10 |
+| TFT DC | GPIO9 |
+| TFT RESET | GPIO14 |
+| TFT arka ışık | GPIO6 |
+| Touch CS | GPIO15 |
+| Touch interrupt | GPIO16 |
+| I2C SDA | GPIO8 |
+| I2C SCL | GPIO17 |
+| DS18B20 OneWire | GPIO4 |
+| Pil voltaj ADC | GPIO2 |
+| Şebeke gücü girişi | GPIO7 |
+| RGB LED | GPIO48 |
+
+### Servo Modülü
+
+| İşlev | Pin |
+| --- | --- |
+| I2C SDA | GPIO13 |
+| I2C SCL | GPIO14 |
+| Servo PWM | GPIO16 |
+| Flash LED | GPIO4 |
+
+## ESP-NOW Komutları
+
+Ana cihaz ve servo modülü aynı ESP-NOW kanalında çalışır.
+
+| Komut | Yön | Açıklama |
+| --- | --- | --- |
+| `0x01` | Ana cihaz -> Servo | Yemleme komutu |
+| `0x02` | Ana cihaz -> Servo | Servo açısı ayarı |
+| `0x03` | Ana cihaz -> Servo | Durum/yem seviyesi sorgusu |
+| `0x03` | Servo -> Ana cihaz | Yem seviyesi yüzdesi |
+| `0x10` | Servo -> Ana cihaz | Servo modülü çevrimiçi bildirimi |
+
+## Kurulum
+
+1. ESPHome kurulu değilse kurun:
+
+   ```bash
+   pip install esphome
+   ```
+
+2. `secrets.yaml` dosyasını kendi ağınıza ve cihaz MAC adreslerinize göre düzenleyin:
+
+   ```yaml
+   wifi_ssid: "WiFi_Adi"
+   wifi_password: "WiFi_Sifresi"
+   wifi_static_ip: "10.1.11.161"
+   wifi_gateway: "10.1.11.1"
+   wifi_subnet: "255.255.255.0"
+   servo_mac_address: AA:BB:CC:DD:EE:FF
+   servo_static_ip: "10.1.11.169"
+   baliktank_mac_address: 11:22:33:44:55:66
+   ```
+
+3. Ana kontrol ünitesini derleyip yükleyin:
+
+   ```bash
+   esphome run balik-yemleyici-by-orcun.yaml
+   ```
+
+4. Servo modülünü derleyip yükleyin:
+
+   ```bash
+   esphome run balik-yemleyici-servo.yaml
+   ```
+
+İlk kurulumdan sonra OTA ile güncelleme yapılabilir.
+
+## Home Assistant Varlıkları
+
+Ana cihaz Home Assistant tarafında aşağıdaki kontrolleri ve sensörleri yayınlar:
+
+- **Yemlemeyi Başlat**: Manuel yemleme komutu gönderir.
+- **Cihaz Durumunu Sorgula**: Servo modülünden durum/yem seviyesi ister.
+- **Yemleyici Servo Açısı**: Servo açıklık değerini ayarlar.
+- **Yemleme 1/2/3 Aktif**: Günlük planları açar veya kapatır.
+- **Yemleme 1/2/3**: Plan saatlerini belirler.
+- **Ekran Bekleme Süresi** ve **Ekran Parlaklığı**: Yerel ekran davranışını ayarlar.
+- **Water Temperature**: DS18B20 su sıcaklığı.
+- **Yem Seviyesi**: Servo modülünden gelen yem seviyesi.
+- **Pil Voltajı** ve **Pil Yüzdesi**: Batarya durumu.
+- **Şebeke Gücü**: Adaptör gücü var/yok bilgisi.
+- **Sonraki Yemleme** ve **Yemleme Döngüsü**: Plan özeti.
+- **WiFi Sinyal**, **IP Adresi** ve **Uptime**: Tanılama bilgileri.
+
+## Çalışma Mantığı
+
+Ana cihaz her saniye aktif yemleme planlarını kontrol eder. Saat kaynağı olarak önce NTP kullanılır; internet saati geçerli değilse DS3231 RTC devreye girer. Plan saati geldiğinde ana cihaz ESP-NOW ile servo modülüne `0x01` yemleme komutu gönderir.
+
+Servo modülü komutu alınca kapağı açar, kısa bir silkelenme hareketi yapar ve servo enerjisini keser. VL53L0X sensöründen gelen yem seviyesi düzenli olarak ana cihaza gönderilir ve ekranda/Home Assistant'ta gösterilir.
+
+## Notlar
+
+- ESP-NOW için iki cihazın MAC adresleri `secrets.yaml` içinde doğru olmalıdır.
+- Ana cihazdaki ESP-NOW kanalı `2` olarak ayarlanmıştır; servo modülü de aynı kanalda çalışır.
+- Ana cihaz Wi-Fi bağlantısı kuramazsa `Balik Yemleyici WiFi` adlı fallback erişim noktası açar.
+- DS3231 yerel bileşeni `components/ds3231` klasöründen yüklenir.
+- Pil yüzdesi 4.2 V tam dolu, 3.3 V boş kabul edilerek hesaplanır.

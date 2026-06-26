@@ -9,34 +9,9 @@ esphome:
     then:
       - lvgl.widget.hide: navbar_container
       - lvgl.widget.hide: hdr_shb_bar
-      - lvgl.bar.update:
-          id: boot_progress_bar
-          value: 0
       - lvgl.page.show: page_boot
 
       - delay: 1.5s
-      - lvgl.bar.update:
-          id: boot_progress_bar
-          value: 35
-      - lvgl.label.update:
-          id: lbl_boot_wifi
-          text: "Wi-Fi Bağlandı! (OK)"
-          text_color: 0x10B981
-
-      - delay: 1.5s
-      - lvgl.bar.update:
-          id: boot_progress_bar
-          value: 70
-      - lvgl.label.update:
-          id: lbl_boot_rtc
-          text: "DS3231 Zaman Senkronize"
-          text_color: 0x10B981
-
-      # 4.5. Saniye: Sistem Hazırlığı Tamamlanıyor
-      - delay: 1.5s
-      - lvgl.bar.update:
-          id: boot_progress_bar
-          value: 100
       - if:
           condition:
             binary_sensor.is_on: sebeke_gucu
@@ -50,10 +25,6 @@ esphome:
                 id: header_power_icon
                 text: "\U000F0079" # Pil ikonu
                 text_color: 0xEF4444 # Kırmızı
-      - lvgl.label.update:
-          id: lbl_boot_sys
-          text: "Sistem Hazır. Başlatılıyor..."
-          text_color: 0xF59E0B  # Amber rengine dönüyor
 
       # 6. Saniye: Ana Ekran Geçişi
       - delay: 1s
@@ -387,30 +358,36 @@ font:
     size: 24
     bpp: 4
     glyphs: [
-      "\U000F023A",  # mdi-fish
-      "\U000F0EF4",  # mdi-fishbowl-outline
-      "\U000F05A9",  # mdi-wifi
-      "\U000F05AA",  # mdi-wifi-off
-      "\U000F1A85",  # mdi-thermometer
-      "\U000F0679",  # mdi-date
-      "\U000F0765",  # mdi-circle (● yerine)
-      "\U000F0150",  # mdi-home
-      "\U000F0493",  # mdi-cog
-      "\U000F0C9E",  # mdi-chart-box
-      "\U000F02DC",  # mdi-clock
-      "\U000F0483",  # mdi-shield
-      "\U000F0198",  # mdi-cookie
-      "\U000F00E8",  # mdi-cached
-      "\U000F1C3B",   # mdi-power-plug-battery
-      "\U000F0079",   # mdi-power-plug
+      "\U000F0EF4", # mdi-fishbowl-outline
+      "\U000F05A9", # mdi-wifi
+      "\U000F05AA", # mdi-wifi-off
+      "\U000F1A85", # mdi-thermometer
+      "\U000F0493", # mdi-cog
+      "\U000F0C9E", # mdi-chart-box
+      "\U000F02DC", # mdi-clock
+      "\U000F0198", # mdi-cookie
+      "\U000F1C3B", # mdi-power-plug-battery
+      "\U000F0079", # mdi-power-plug
+      "\U000F0A32", # mdi-bilmem ne
+      "\U000F007A", # mdi-battery-10
+      "\U000F007B", # mdi-battery-20
+      "\U000F007C", # mdi-battery-30
+      "\U000F007D", # mdi-battery-40
+      "\U000F007E", # mdi-battery-50
+      "\U000F007F", # mdi-battery-60
+      "\U000F0080", # mdi-battery-70
+      "\U000F0081", # mdi-battery-80
+      "\U000F0082", # mdi-battery-90
+      "\U000F0079", # mdi-battery (full)
+      "\U000F008E", # mdi-battery-outline
+      "\U000F0091", # mdi-battery-unknown
     ]
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons_large
-    size: 48              # <-- Boyutu buradan 48 piksele çıkardık!
-    bpp: 4                # Çözünürlük kalitesi (Yüksek)
+    size: 48
+    bpp: 4
     glyphs: [
-      "\U000F0EF4",       # İhtiyacınız olabilecek diğer büyük ikonlar...
-      "\U000F023A",
+      "\U000F0EF4",
     ]
 # ============================================================
 # LVGL SCRIPT
@@ -639,19 +616,17 @@ lvgl:
                 pad_all: 0
                 scrollbar_mode: "OFF"
                 widgets:
-                  # Büyük Boy İkon (Kodunuzda tanımlı mdi_icons_large kullanılıyor)
                   - label:
                       id: modal_icon
                       x: 0
                       y: 20
                       width: 200
                       height: 50
-                      text: "\U000F0EF4" # mdi-fish (büyük balık ikonu)
+                      text: "\U000F0EF4"
                       text_font: mdi_icons_large
                       text_align: CENTER
-                      text_color: 0xFBBF24 # Canlı Kehribar Rengi
+                      text_color: 0xFBBF24
                   
-                  # Ana Başlık
                   - label:
                       id: modal_title
                       x: 10
@@ -663,7 +638,6 @@ lvgl:
                       text_font: font_14
                       text_align: CENTER
                   
-                  # Durum/Alt Bilgi Yazısı
                   - label:
                       id: modal_subtitle
                       x: 10
@@ -681,9 +655,9 @@ lvgl:
                       align: CENTER
                       width: 40
                       height: 40
-                      spin_time: 1000ms    # Çemberin 1 tam tur dönme süresi
-                      arc_length: 60       # Çember yayının uzunluğu (derece)
-                      line_width: 3        # Çemberin çizgi kalınlığı
+                      spin_time: 1000ms
+                      arc_length: 60
+                      line_width: 3
                       line_color: 0xFBBF24
 
   pages:
@@ -707,9 +681,9 @@ lvgl:
               - obj:
                   id: water_temp_card
                   x: 4
-                  y: 48
-                  width: 110
-                  height: 36
+                  y: 136
+                  width: 112
+                  height: 76
                   bg_color: 0x070E1B
                   bg_opa: 95%
                   border_width: 1
@@ -724,81 +698,50 @@ lvgl:
                   widgets:
                     - label:
                         id: water_temp_icon
-                        x: 6
-                        y: 5
-                        width: 24
-                        height: 24
+                        x: 10
+                        y: 10
+                        width: 16
+                        height: 16
                         text: "\U000F1A85"
                         text_font: mdi_icons
                         text_align: CENTER
+                        text_color: 0x3B82F6
+                    - label:
+                        id: water_temp_title
+                        x: 34
+                        y: 6
+                        width: 66
+                        height: 18
+                        text: "SICAKLIK"
+                        text_font: font_16
                         text_color: 0xF59E0B
                     - label:
                         id: water_temp_value
-                        x: 36
-                        y: 7
-                        width: 53
-                        height: 22
+                        x: 14
+                        y: 36
+                        width: 48
+                        height: 28
                         text: "00.0"
                         text_color: 0xF1F5F9
                         text_align: LEFT
                         long_mode: CLIP
-                        text_font: font_18
+                        text_font: font_24
                     - label:
                         id: water_temp_unit
-                        x: 84
-                        y: 8
-                        width: 20
-                        height: 14
+                        x: 72
+                        y: 36
+                        width: 28
+                        height: 28
                         text: "°C"
                         text_color: 0x8E9FB8
                         text_align: LEFT
                         long_mode: CLIP
-                        text_font: font_14
+                        text_font: font_24
               - obj:
-                  id: clock_card
-                  x: 126
-                  y: 48
-                  width: 110
-                  height: 36
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_width: 1
-                  border_color: 0x162038
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 5
-                  shadow_color: 0x06B6D4
-                  shadow_opa: 35%
-                  scrollbar_mode: "OFF"
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: clock_icon
-                        x: 6
-                        y: 5
-                        width: 24
-                        height: 24
-                        text: "\U000F0150"
-                        text_font: mdi_icons
-                        text_align: CENTER
-                        text_color: 0x06B6D4
-                    - label:
-                        id: clock_value
-                        x: 36
-                        y: 7
-                        width: 60
-                        height: 22
-                        text: "12:45"
-                        text_color: 0xF1F5F9
-                        text_align: LEFT
-                        long_mode: CLIP
-                        text_font: font_18
-
-              - obj:
-                  id: uptime_card
+                  id: sicaklik_card
                   x: 4
-                  y: 88
-                  width: 110
+                  y: 48
+                  width: 232
                   height: 84
                   bg_color: 0x070E1B
                   bg_opa: 95%
@@ -807,61 +750,98 @@ lvgl:
                   border_opa: 20%
                   radius: 16
                   shadow_width: 5
-                  shadow_color: 0xF59E0B  # İstenen Turuncu Amber rengi gölge
+                  shadow_color: 0xF59E0B
                   shadow_opa: 35%
-                  scrollbar_mode: "OFF"
                   pad_all: 0
+                  scrollbar_mode: "OFF"
                   widgets:
+                    - obj:
+                        id: btn_yemle_layer
+                        x: 0
+                        y: 40
+                        width: 230
+                        height: 42
+                        align: TOP_MID
+                        bg_opa: 0%
+                        border_width: 0
+                        pad_all: 0
+                        widgets:
+                          - obj:
+                              id: btn_yemle_outer
+                              x: 16
+                              y: -38
+                              width: 76
+                              height: 76
+                              bg_color: 0x5500FF
+                              bg_grad_color: 0xFF4D00
+                              bg_grad_dir: HOR
+                              border_width: 0
+                              radius: 75
+                              shadow_width: 5
+                              shadow_color: 0x0066FF
+                              shadow_opa: 100%
+                              pad_all: 0
+                              scrollbar_mode: "OFF"
+                              widgets:
+                                - obj:
+                                    id: btn_yemle_label_layer
+                                    x: 0
+                                    y: 0
+                                    width: 72
+                                    height: 72
+                                    align: CENTER
+                                    bg_color: 0x16171B
+                                    border_width: 0
+                                    radius: 66
+                                    pad_all: 0
+                                    widgets:
+                                      - label:
+                                          id: btn_yemle_label
+                                          x: -20
+                                          y: -16
+                                          align: CENTER
+                                          text: "HEMEN\nYEMLE"
+                                          text_color: 0xFFFFFF
+                                          text_align: CENTER
                     - label:
-                        id: uptime_icon
-                        x: 10
-                        y: 9
-                        width: 90
-                        height: 22
-                        text: "\U000F00E8"
-                        text_font: mdi_icons
-                        text_align: CENTER
-                        text_color: 0xF59E0B
+                        id: yem_seviyesi_label
+                        x: 95
+                        y: 5
+                        width: 95
+                        height: 20
+                        text: "Yem Seviyesi"
+                        text_color: 0xFFFFFF
+                        text_font: font_16
                     - label:
-                        id: uptime_value
-                        x: 5
-                        y: 33
-                        width: 100
-                        height: 22
-                        text: "Sistem Açılıyor..."
-                        text_color: 0xF1F5F9
-                        text_align: CENTER
-                        long_mode: SCROLL_CIRCULAR  # Yazı uzun olacağı için kayma efekti verildi
-                        text_font: font_10  # Okunabilirlik ve sığması adına font optimize edildi
-                    - label:
-                        id: uptime_label
-                        x: 10
-                        y: 58
-                        width: 90
-                        height: 12
-                        text: "Çalışma Süresi"
-                        text_color: 0x8E9FB8
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: font_10
-                    - line:
-                        id: uptime_accent_line
-                        x: 10
-                        y: 72
-                        width: 90
-                        height: 2
-                        points:
-                          - 0, 0
-                          - 124, 0
-                        line_color: 0xF59E0B
-                        line_rounded: true
-
+                        id: yem_seviyesi_value
+                        x: 118
+                        y: 31
+                        width: 60
+                        height: 30
+                        text: "%78"
+                        text_align: RIGHT
+                        text_font: font_24
+                        text_color: 0xFFFFFF
+                    - bar:
+                        id: yem_seviyesi_bar
+                        x: 200
+                        y: 5
+                        width: 10
+                        height: 72
+                        value: 0
+                        min_value: 0
+                        max_value: 100
+                        mode: RANGE
+                        indicator:
+                          bg_color: 0x4F46E5
+                        bg_color: 0x1F2937
+                        radius: 9999
               - obj:
-                  id: next_feed_card
-                  x: 126
-                  y: 88
-                  width: 110
-                  height: 84
+                  id: pil_durum_card
+                  x: 124
+                  y: 136
+                  width: 112
+                  height: 76
                   bg_color: 0x070E1B
                   bg_opa: 95%
                   border_width: 1
@@ -876,45 +856,45 @@ lvgl:
                   widgets:
 
                     - label:
-                        id: next_feed_icon
-                        x: 10
-                        y: 9
-                        width: 90
-                        height: 22
-                        text: "\U000F0150"
+                        id: pil_durum_icon
+                        x: 80
+                        y: 38
+                        width: 25
+                        height: 25
+                        text: "\U000F0091"
                         text_font: mdi_icons
                         text_align: CENTER
-                        text_color: 0x3B82F6
+                        text_color: 0xAADA0B
 
                     - label:
-                        id: next_feed_value
-                        x: 10
-                        y: 33
-                        width: 90
-                        height: 22
-                        text: "--:--"
+                        id: pil_durum_value
+                        x: 14
+                        y: 36
+                        width: 60
+                        height: 28
+                        text: "%100"
                         text_color: 0xFFFFFF
+                        text_align: RIGHT
+                        long_mode: CLIP
+                        text_font: font_24
+
+                    - label:
+                        id: pil_durum_label
+                        x: 5
+                        y: 6
+                        width: 100
+                        height: 18
+                        text: "PİL DURUMU"
+                        text_color: 0xAADA0B
                         text_align: CENTER
                         long_mode: CLIP
                         text_font: font_16
-
-                    - label:
-                        id: next_feed_label
-                        x: 10
-                        y: 58
-                        width: 90
-                        height: 12
-                        text: "Sonraki Yemleme"
-                        text_color: 0x94A3B8
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: font_10
               - obj:
-                  id: last_feed_card
+                  id: son_yemleme_card
                   x: 4
-                  y: 176
-                  width: 110
-                  height: 56
+                  y: 216
+                  width: 112
+                  height: 76
                   bg_color: 0x070E1B
                   bg_opa: 95%
                   border_width: 1
@@ -928,43 +908,33 @@ lvgl:
                   pad_all: 0
                   widgets:
                     - label:
-                        id: last_feed_icon
-                        x: 4
-                        y: 7
-                        width: 20
-                        height: 18
-                        text: "\U000F023A"
-                        text_font: mdi_icons
-                        text_align: CENTER
-                        text_color: 0x10B981
-                    - label:
-                        id: last_feed_value
-                        x: 30
-                        y: 24
-                        width: 53
-                        height: 22
+                        id: son_yemleme_value
+                        x: 25
+                        y: 32
+                        width: 60
+                        height: 32
                         text: "--:--"
-                        text_color: 0xFFFFFF
+                        text_color: 0xF1F5F9
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: font_18
+                        text_font: font_24
                     - label:
-                        id: last_feed_label
-                        x: 24
-                        y: 10
-                        width: 80
-                        height: 12
-                        text: "Son Yemleme"
-                        text_color: 0x94A3B8
+                        id: son_yemleme_label
+                        x: 5
+                        y: 6
+                        width: 100
+                        height: 22
+                        text: "SON YEMLEME"
+                        text_color: 0x8800FF
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: font_10
+                        text_font: font_14
               - obj:
-                  id: feed_level_card
-                  x: 126
-                  y: 176
-                  width: 110
-                  height: 56
+                  id: siradaki_yem_card
+                  x: 124
+                  y: 216
+                  width: 112
+                  height: 76
                   bg_color: 0x070E1B
                   bg_opa: 95%
                   border_width: 1
@@ -978,90 +948,27 @@ lvgl:
                   pad_all: 0
                   widgets:
                     - label:
-                        id: food_level_icon
-                        x: 4
-                        y: 7
-                        width: 20
-                        height: 18
-                        text: "\U000F0198"  # mdi-cookie
-                        text_font: mdi_icons
-                        text_align: CENTER
-                        text_color: 0xFBBF24
-                    - label:
-                        id: distance_value
-                        x: 20
-                        y: 24
-                        width: 85
-                        height: 22
-                        text: "--- mm"
+                        id: siradaki_yem_value
+                        x: 25
+                        y: 32
+                        width: 60
+                        height: 32
+                        text: "--:--"
                         text_color: 0xF1F5F9
                         text_align: CENTER
                         long_mode: CLIP
-                        text_font: font_14
+                        text_font: font_24
                     - label:
-                        id: food_level_label
-                        x: 24
-                        y: 10
-                        width: 80
-                        height: 12
-                        text: "Yem Seviyesi"
-                        text_color: 0x8E9FB8
-                        text_align: CENTER
-                        long_mode: CLIP
-                        text_font: font_10
-              - obj:
-                  id: yem_feed_card
-                  x: 4
-                  y: 236
-                  width: 232
-                  height: 40
-                  scrollbar_mode: "OFF"
-                  bg_color: 0x070E1B
-                  bg_opa: 95%
-                  border_color: 0x162038
-                  border_width: 1
-                  border_opa: 20%
-                  radius: 16
-                  shadow_width: 16
-                  shadow_color: 0xFBBF24
-                  shadow_opa: 35%
-                  pad_all: 0
-                  widgets:
-                    - label:
-                        id: yem_feed_icon
-                        x: 14
+                        id: siradaki_yem_label
+                        x: 5
                         y: 6
-                        width: 40
-                        height: 28
-                        text: "\U000F0198"
-                        text_color: 0xFBBF24
-                        text_font: mdi_icons
-                        text_opa: 100%
+                        width: 100
+                        height: 22
+                        text: "SIRADAKİ YEM"
+                        text_color: 0xFFC800
                         text_align: CENTER
                         long_mode: CLIP
-                    - label:
-                        id: yem_feed_label
-                        x: 62
-                        y: 10
-                        width: 131
-                        height: 18
-                        text: 'Yem Ver'
-                        text_color: 0x8E9FB8
                         text_font: font_14
-                        text_opa: 80%
-                        text_align: CENTER
-                        long_mode: CLIP
-                    - led:
-                        id: yem_feed_led
-                        x: 185
-                        y: 16
-                        width: 5
-                        height: 5
-                        color: 0xFBBF24
-                        brightness: 70%         
-                  on_click:
-                    then:
-                      - script.execute: yemleme_script
 
     - id: page_feed
       bg_color: 0x08142D
@@ -1518,7 +1425,7 @@ lvgl:
             y: 95
             width: 240
             height: 25
-            text: "AQUA CONTROL"
+            text: "Balık Yemleyici by Orçun"
             text_font: font_16
             text_align: CENTER
             text_color: 0xF1F5F9
@@ -1526,53 +1433,26 @@ lvgl:
         - label:
             id: boot_subtitle
             x: 0
-            y: 118
+            y: 158
             width: 240
             height: 15
             text: "Akvaryum OS v2.0"
-            text_font: font_10
+            text_font: font_12
             text_align: CENTER
             text_color: 0x64748B
+        - spinner:
+            id: boot_spinner
+            x: 100
+            y: 255
+            width: 40
+            height: 40
+            spin_time: 1000ms
+            arc_length: 60deg
+            arc_color: 0x3B82F6
+            arc_rounded: true
+            indicator:
+              arc_color: 0xAADA0B
 
-        # Modern Çizgisel Yükleme Barı (Progress Bar)
-        - bar:
-            id: boot_progress_bar
-            x: 30
-            y: 160
-            width: 180
-            height: 6
-            bg_color: 0x1E293B
-            mode: NORMAL
-            value: 0
-            # Barın yüklenen kısmının rengi (Premium Turuncu Amber renginiz)
-            # LVGL bar rengini değiştirmek için style tanımları gerekebilir, 
-            # varsayılan olarak ana temayı veya yeşili/maviyi kullanır.
-
-        # ALTTTAKİ DONANIM KONTROL PANELİ (Self-Test)
-        - obj:
-            id: boot_status_panel
-            x: 25
-            y: 190
-            width: 190
-            height: 100
-            bg_color: 0x0F172A
-            radius: 12
-            pad_all: 0
-            border_width: 1
-            border_color: 0x1E293B
-            scrollbar_mode: "OFF"
-            widgets:
-              # Wi-Fi Durumu
-              - label: {text: "\U000F05A9", x: 15, y: 7, text_font: mdi_icons, text_color: 0x64748B} # wifi ikon
-              - label: {id: lbl_boot_wifi, text: "Wi-Fi Bağlanıyor...", x: 42, y: 10, text_font: font_10, text_color: 0x94A3B8}
-
-              # RTC Saat Modülü Durumu
-              - label: {text: "\U000F02DC", x: 15, y: 34, text_font: mdi_icons, text_color: 0x64748B} # clock ikon
-              - label: {id: lbl_boot_rtc, text: "RTC Modül Kontrolü...", x: 42, y: 37, text_font: font_10, text_color: 0x94A3B8}
-
-              # Bellek ve Sistem Durumu
-              - label: {text: "\U000F0483", x: 15, y: 61, text_font: mdi_icons, text_color: 0x64748B} # cpu/disk ikon
-              - label: {id: lbl_boot_sys, text: "Sistem Çekirdeği OK", x: 42, y: 64, text_font: font_10, text_color: 0x10B981}
 # ============================================================
 # SCRIPTLER
 # ============================================================
@@ -1699,12 +1579,12 @@ script:
     mode: single
     then:
       - lvgl.label.update:
-          id: last_feed_value
+          id: son_yemleme_value
           text:
             format: "%s"
             args: ['id(son_yemleme_saati).c_str()']
       - lvgl.label.update:
-          id: next_feed_value
+          id: siradaki_yem_value
           text: !lambda |-
             // KORUMA: Sistem saati geçerli değilse hesaplama yapma, hata gösterme
             auto time_now = id(rtc_saati).now();
@@ -1741,21 +1621,6 @@ interval:
   - interval: 1s
     then:
       - script.execute: akilli_yemleme_kontrolu
-      - lvgl.label.update:
-          id: clock_value
-          text: !lambda |-
-            ESPTime aktif_saat;
-            if (id(internet_saati).now().is_valid()) {
-              aktif_saat = id(internet_saati).now();
-            } else if (id(rtc_saati).now().is_valid()) {
-              aktif_saat = id(rtc_saati).now();
-            } else {
-              return std::string("--:--");
-            }
-            char buf[6];
-            snprintf(buf, sizeof(buf), "%02d:%02d", aktif_saat.hour, aktif_saat.minute);
-            return std::string(buf);
-
   - interval: 10s
     then:
       - lvgl.label.update:
@@ -2011,7 +1876,7 @@ sensor:
     on_value:
       then:
         - lvgl.label.update:
-            id: distance_value
+            id: yem_seviyesi_value
             text:
               format: "%.0f %%"
               args: ['x']
@@ -2187,6 +2052,7 @@ text_sensor:
       char buffer[4];
       sprintf(buffer, "Günde %d Kez", total);
       return std::string(buffer);
+
   - platform: uptime
     id: uptime_sensor_text
     name: Uptime
@@ -2196,13 +2062,9 @@ text_sensor:
       hours: " Saat"
       minutes: " Dakika"
       seconds: " saniye"
-    update_interval: 1s
+    update_interval: 60s
     icon: mdi:clock-start
-    on_value:
-      then:
-        - lvgl.label.update:
-            id: uptime_value
-            text: !lambda 'return x.c_str();'
+
   - platform: wifi_info
     ip_address:
       name: "IP Adresi"

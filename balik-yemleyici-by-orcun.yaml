@@ -453,7 +453,6 @@ lvgl:
           border_width: 0
           radius: 0
           pad_all: 0
-          hidden: false # Alt barın görünmesi için varsayılanı false yaptık
           widgets:
             - buttonmatrix:
                 id: footer_nav

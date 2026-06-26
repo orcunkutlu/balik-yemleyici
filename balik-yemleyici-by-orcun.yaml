@@ -7,11 +7,7 @@ esphome:
   on_boot:
     priority: -100
     then:
-      - lvgl.widget.hide: navbar_container
-      - lvgl.widget.hide: hdr_shb_bar
       - lvgl.page.show: page_boot
-
-      - delay: 1.5s
       - if:
           condition:
             binary_sensor.is_on: sebeke_gucu
@@ -27,7 +23,7 @@ esphome:
                 text_color: 0xEF4444 # Kırmızı
 
       # 6. Saniye: Ana Ekran Geçişi
-      - delay: 1s
+      - delay: 3s
       - lvgl.page.show: page_home
       - lvgl.widget.show: navbar_container
       - lvgl.widget.show: hdr_shb_bar
@@ -167,8 +163,13 @@ espnow:
             break;
         }
 captive_portal:
+image:
+  - file: "resimler/logom.png"
+    id: boot_logo
+    type: RGB565
+    resize: 180x180
+
 button:
-   
   - platform: template
     name: "Yemlemeyi Başlat"
     id: btn_yemleme_baslat
@@ -179,7 +180,6 @@ button:
             address: !secret servo_mac_address
             data: [0x01]
         - logger.log: "YEMLEME_KOMUTU (0x01) gönderildi."
-
   # 2. Alıcı Cihazdan Durum Raporu İsteyen Buton (0x03 Komutu)
   - platform: template
     name: "Cihaz Durumunu Sorgula"
@@ -367,7 +367,7 @@ font:
       "\U000F02DC", # mdi-clock
       "\U000F0198", # mdi-cookie
       "\U000F1C3B", # mdi-power-plug-battery
-      "\U000F0079", # mdi-power-plug
+#      "\U000F0079", # mdi-power-plug
       "\U000F0A32", # mdi-bilmem ne
       "\U000F007A", # mdi-battery-10
       "\U000F007B", # mdi-battery-20
@@ -447,6 +447,7 @@ lvgl:
           y: 0
           width: 240
           height: 40
+          hidden: true
           bg_color: 0x070E1B
           bg_opa: 95%
           border_width: 0
@@ -543,6 +544,7 @@ lvgl:
           bg_opa: 95%
           border_width: 0
           radius: 0
+          hidden: true
           pad_all: 0
           widgets:
             - label:
@@ -1407,51 +1409,35 @@ lvgl:
       bg_color: 0x08142D  # Ana derin lacivert arka plan
       pad_all: 0
       widgets:
-        # Akvaryum / Balık Logosu Alanı (MDI İkonu ile Büyük Logo)
         - label:
-            id: boot_logo
-            x: 0
-            y: 40
-            width: 240
-            height: 50
-            text: "\U000F0EF4"  # MDI 'fishbowl' (Balık) İkonu
-            text_font: mdi_icons_large  # Büyük ikon fontunuz (Genişletilmiş ikon setinde olmalı)
-            text_align: CENTER
-            text_color: 0x3B82F6  # Canlı Neon Mavi
+            id: boot_text
+            x: -25
+            y: -50
+            align: BOTTOM_MID
+            text: "Başlatılıyor..."
+            text_color: 0xFFFFFF
+            text_font: font_10
 
-        - label:
-            id: boot_title
-            x: 0
-            y: 95
-            width: 240
-            height: 25
-            text: "Balık Yemleyici by Orçun"
-            text_font: font_16
-            text_align: CENTER
-            text_color: 0xF1F5F9
-
-        - label:
-            id: boot_subtitle
-            x: 0
-            y: 158
-            width: 240
-            height: 15
-            text: "Akvaryum OS v2.0"
-            text_font: font_12
-            text_align: CENTER
-            text_color: 0x64748B
         - spinner:
             id: boot_spinner
-            x: 100
-            y: 255
-            width: 40
-            height: 40
+            x: 0
+            y: -55
+            width: 25
+            height: 25
+            align: BOTTOM_MID
             spin_time: 1000ms
             arc_length: 60deg
-            arc_color: 0x3B82F6
-            arc_rounded: true
+            arc_color: 0x1C3B6D
             indicator:
-              arc_color: 0xAADA0B
+              arc_color: 0x58A6FF
+
+        - image:
+            id: logo_boot
+            src: boot_logo
+            x: 30
+            y: 15
+            width: 180
+            height: 180
 
 # ============================================================
 # SCRIPTLER
@@ -1920,6 +1906,40 @@ sensor:
       if (percentage < 0.0) percentage = 0.0;
 
       return percentage;
+    on_value:
+      - lvgl.label.update:
+          id: header_power_icon
+          text: !lambda |-
+            static char buf[10];
+            std::string icon;
+            if (x == 100.0) {
+                icon = "\U000F0079"; // mdi-battery (full)
+            } else if (x > 90) {
+                icon = "\U000F0082"; // mdi-battery-90
+            } else if (x > 80) {
+                icon = "\U000F0081"; // mdi-battery-80
+            } else if (x > 70) {
+                icon = "\U000F0080"; // mdi-battery-70
+            } else if (x > 60) {
+                icon = "\U000F007F"; // mdi-battery-60
+            } else if (x > 50) {
+                icon = "\U000F007E"; // mdi-battery-50
+            } else if (x > 40) {
+                icon = "\U000F007D"; // mdi-battery-40
+            } else if (x > 30) {
+                icon = "\U000F007C"; // mdi-battery-30
+            } else if (x > 20) {
+                icon = "\U000F007B"; // mdi-battery-20
+            } else if (x > 10) {
+                icon = "\U000F007A"; // mdi-battery-10
+            } else if (x > 0) {
+                icon = "\U000F008E"; // mdi-battery-outline
+            } else {
+                icon = "\U000F0091"; // mdi-battery-unknown (questionmark)
+            }
+            snprintf(buf, sizeof(buf), "%s", icon.c_str());
+            return buf;
+
 
   - platform: uptime
     name: "Uptime Sensor"

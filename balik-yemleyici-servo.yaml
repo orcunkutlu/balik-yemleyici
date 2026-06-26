@@ -15,10 +15,12 @@ esp32:
       sram1_as_iram: true
       minimum_chip_revision: "3.1"
 wifi:
+  power_save_mode: NONE
   id: wifi_durum
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   reboot_timeout: 0s
+  post_connect_roaming: false
   manual_ip:
     static_ip: !secret servo_static_ip
     gateway: !secret wifi_gateway
@@ -46,7 +48,6 @@ espnow:
         switch (komut) {
           case 0x01:  // YEMLEME_KOMUTU
             ESP_LOGI("espnow", "YEMLEME_KOMUTU alindi!");
-            // Doğrudan scripti çağırıyoruz, interval karmaşasından kurtulduk
             id(yemleme_script).execute();
             break;
             
@@ -56,7 +57,7 @@ espnow:
               // Değeri -100 ile 100 arasında sınırlar
               if (aci < -100) aci = -100;
               if (aci > 100) aci = 100;
-              ESP_LOGI("espnow", "Servo aci ayari güncellendi: %d%%", aci);
+              ESP_LOGI("espnow", "Servo açı ayarı güncellendi: %d%%", aci);
               id(servo_acisi_hedef) = aci;
             }
             break;
@@ -131,7 +132,7 @@ sensor:
       - median:
           window_size: 10
           send_every: 1
-      # 100% noktasını 22mm'ye çektik (Tolerans Bölgesi oluşturuldu)
+      # 100% noktasını 20mm'ye çektik (Tolerans Bölgesi oluşturuldu)
       - calibrate_linear:
           - 56.0 -> 0.0
           - 20.0 -> 100.0

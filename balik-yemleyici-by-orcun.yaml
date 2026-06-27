@@ -1888,6 +1888,12 @@ sensor:
     accuracy_decimals: 2
     filters:
       - multiply: 2.0
+
+
+################################################################
+#    VOLTAJ YUZDE KISMINI KULLANMAK DAHA MANTIKLI GELDI
+################################################################
+
 #    on_value_range:
 #      - below: 3.15
 #        then:
@@ -1957,6 +1963,18 @@ sensor:
             }
             snprintf(buf, sizeof(buf), "%s", icon.c_str());
             return buf;
+#      - if:
+#          condition:
+#            lambda: 'return id(pil_voltaji).state < 3.95;'
+#          then:
+#            - logger.log: "!!! KRİTİK VOLTAJ !!! Pil tükenmek üzere, zombi modunu önlemek için uyku döngüsüne giriliyor."
+#            - lvgl.pause: 
+#            - light.turn_off: ekran_arka_isigi
+#            - delay: 2s
+#            # 15 dakikalık derin uyku döngüsü. Her 15 dk'da bir uyanıp şebekeyi ve pili kontrol eder.
+#            - deep_sleep.enter:
+#                id: derin_uyku
+#                sleep_duration: 15min
 
   - platform: uptime
     name: "Uptime Sensor"

@@ -122,33 +122,23 @@ sensor:
     unit_of_measurement: "%"
     accuracy_decimals: 0
     filters:
-      - clamp:
-          min_value: 0
-          max_value: 100
-          ignore_out_of_range: true
       - filter_out: nan
-      - multiply: 1000.0
-      # Örnek penceresini 10 yaptık, böylece anlık zıplamaları daha iyi yutar
+      - multiply: 1000.0  # Metreyi mm'ye çevirir (0.073m -> 73mm)
       - median:
           window_size: 10
           send_every: 1
-      # 100% noktasını 20mm'ye çektik (Tolerans Bölgesi oluşturuldu)
       - calibrate_linear:
           - 56.0 -> 0.0
           - 20.0 -> 100.0
-      # 22mm altındaki tüm dalgalanmaları %100'e sabitler
+      # CLAMP FILTRESINI BURAYA ALDIK: Kalibrasyon sonrası çıkan % sonucunu 0-100 arasında tutar.
+      - clamp:
+          min_value: 0
+          max_value: 100
+          ignore_out_of_range: false # out of range olanları yok sayma, sınırla (0 veya 100 yap)
       - throttle_average: 30s
     on_value:
       then:
         - script.execute: yem_seviyesi_gonder
-switch:
-  - platform: template
-    name: "ESP WiFi Toggle"
-    icon: "mdi:wifi"
-    turn_on_action:
-      - wifi.enable
-    turn_off_action:
-      - wifi.disable
 
 # ========================================================
 # GLOBALS

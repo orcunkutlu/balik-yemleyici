@@ -125,6 +125,17 @@ wifi:
     subnet: !secret wifi_subnet
     dns1: 8.8.8.8
     dns2: 1.1.1.1
+
+#deep_sleep:
+#  id: derin_uyku
+#  run_duration: 20s
+
+
+# WAKE UP PIN MUHTEMELEN KULLANMAYACAĞIZ
+#  wakeup_pin:
+#    number: GPIO7
+#    mode: INPUT
+#    inverted: false
 espnow:
   enable_on_boot: true
   channel: 2
@@ -1867,18 +1878,26 @@ sensor:
               args: ['x']
   # 1. Ham Voltajı Okuyan ve Gerçek Pil Voltajına Dönüştüren Sensör
   - platform: adc
-    pin: GPIO2
+    pin: GPIO5
     name: "Pil Voltajı"
     id: pil_voltaji
-    update_interval: 10s
+    icon: "mdi:battery"
+    update_interval: 15s
     unit_of_measurement: "V"
+    attenuation: 12db
     accuracy_decimals: 2
     filters:
-      # Voltaj bölücü kalibrasyonu: 
-      # Analog pinden okunan ~1.04V değerini gerçek pil voltajı olan 4.2V'a çarpma yöntemiyle yükseltiyoruz.
-      # Üstteki direnç formülüne göre çarpanımız yaklaşık (100+33)/33 = 4.03'tür.
-      - multiply: 4.03
-
+      - multiply: 2.0
+#    on_value_range:
+#      - below: 3.15
+#        then:
+#          - logger.log: "!!! KRİTİK VOLTAJ !!! Pil tükendi, sistem güvenli kapatılıyor."
+#          - lvgl.pause: 
+#          - light.turn_off: ekran_arka_isigi
+#          - delay: 2s
+#          - deep_sleep.enter:
+#              - id: derin_uyku
+#              - sleep_duration: 15min
   # 2. Voltaj Değerini Yüzdeye (%) Dönüştüren Şablon Sensör
   - platform: template
     name: "Pil Yüzdesi"

@@ -8,21 +8,11 @@ esphome:
     priority: -100
     then:
       - lvgl.page.show: page_boot
-      - if:
-          condition:
-            binary_sensor.is_on: batarya_modu
-          then:
-            - lvgl.label.update:
-                id: header_power_icon
-                text: "\U000F0079" # Pil ikonu
-                text_color: 0xEF4444 # Kırmızı
-          else:
-            - lvgl.label.update:
-                id: header_power_icon
-                text: "\U000F1C3B" # Priz ikonu
-                text_color: 0x10B981 # Yeşil
-
-      # 6. Saniye: Ana Ekran Geçişi
+      - lvgl.label.update:
+          id: header_power_icon
+          text: "\U000F1C3B"       # Priz ikonu (varsayılan)
+          text_color: 0x10B981    # Yeşil
+      # 3. Saniye: Ana Ekran Geçişi
       - delay: 3s
       - lvgl.page.show: page_home
       - lvgl.widget.show: navbar_container
@@ -147,9 +137,9 @@ espnow:
         switch (komut_kodu) {
           case 0x03:
             if (size >= 3) {
-              uint16_t mesafe_mm = (data[1] << 8) | data[2];
-              ESP_LOGI("EspNow_Servo", "[0x03] Servo cihazından yem seviyesi alındı: %u %%", mesafe_mm);
-              id(yem_seviyesi_sensor).publish_state(mesafe_mm);
+              uint8_t yem_yuzdesi = data[2];  // data[1] zaten 0x00
+              ESP_LOGI("EspNow_Servo", "[0x03] Yem seviyesi: %u%%", yem_yuzdesi);
+              id(yem_seviyesi_sensor).publish_state(yem_yuzdesi);
             }
             break;
 
@@ -1583,9 +1573,14 @@ script:
       - lvgl.label.update:
           id: siradaki_yem_value
           text: !lambda |-
-            // KORUMA: Sistem saati geçerli değilse hesaplama yapma, hata gösterme
-            auto time_now = id(rtc_saati).now();
-            if (!time_now.is_valid()) {
+            // akilli_yemleme_kontrolu ile aynı öncelik sırası:
+            // Önce internet saati, yoksa RTC, ikisi de yoksa boş döndür
+            ESPTime time_now;
+            if (id(internet_saati).now().is_valid()) {
+              time_now = id(internet_saati).now();
+            } else if (id(rtc_saati).now().is_valid()) {
+              time_now = id(rtc_saati).now();
+            } else {
               return std::string("--:--");
             }
 
@@ -1599,6 +1594,7 @@ script:
             if (feed2 > current_minute && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
             if (feed3 > current_minute && (next_feed == -1 || feed3 < next_feed)) next_feed = feed3;
             
+            // Bugün için saat geçtiyse yarının en erken planını göster
             if (next_feed == -1) {
               if (feed1 != -1) next_feed = feed1;
               if (feed2 != -1 && (next_feed == -1 || feed2 < next_feed)) next_feed = feed2;
@@ -1928,82 +1924,61 @@ sensor:
     accuracy_decimals: 0
     icon: "mdi:battery"
     lambda: |-
-      // Pil voltajını alıyoruz
       float voltage = id(pil_voltaji).state;
-      
-      // Eğer sensör henüz okunmadıysa orayı pas geç
       if (isnan(voltage)) return {};
-
-      // Lityum pil için sınır değerleri (4.2V = %100 , 3.3V = %0)
       float max_v = 4.2;
       float min_v = 3.3;
-
-      // Voltajı yüzdeye oranla
       float percentage = ((voltage - min_v) / (max_v - min_v)) * 100.0;
-
-      // Sonucun %0 ile %100 arasında kalmasını sağla (taşmaları engelle)
       if (percentage > 100.0) percentage = 100.0;
       if (percentage < 0.0) percentage = 0.0;
-
       return percentage;
     on_value:
       - lvgl.label.update:
-          id: header_power_icon
-          text: !lambda |-
-            static char buf[10];
-            std::string icon;
-            if (x == 100.0) {
-                icon = "\U000F0079"; // mdi-battery (full)
-            } else if (x > 90) {
-                icon = "\U000F0082"; // mdi-battery-90
-            } else if (x > 80) {
-                icon = "\U000F0081"; // mdi-battery-80
-            } else if (x > 70) {
-                icon = "\U000F0080"; // mdi-battery-70
-            } else if (x > 60) {
-                icon = "\U000F007F"; // mdi-battery-60
-            } else if (x > 50) {
-                icon = "\U000F007E"; // mdi-battery-50
-            } else if (x > 40) {
-                icon = "\U000F007D"; // mdi-battery-40
-            } else if (x > 30) {
-                icon = "\U000F007C"; // mdi-battery-30
-            } else if (x > 20) {
-                icon = "\U000F007B"; // mdi-battery-20
-            } else if (x > 10) {
-                icon = "\U000F007A"; // mdi-battery-10
-            } else if (x > 0) {
-                icon = "\U000F008E"; // mdi-battery-outline
-            } else {
-                icon = "\U000F0091"; // mdi-battery-unknown (questionmark)
-            }
-            snprintf(buf, sizeof(buf), "%s", icon.c_str());
-            return buf;
+                  id: pil_durum_value
+                  text: !lambda |-
+                    static char buf[8];
+                    snprintf(buf, sizeof(buf), "%%%0.0f", x);
+                    return buf;
+      # Adaptör modundaysa — priz ikonu, yeşil, ikon güncelleme yeterli
+      - if:
+          condition:
+            binary_sensor.is_off: batarya_modu
+          then:
+            - lvgl.label.update:
+                id: header_power_icon
+                text: "\U000F1C3B"     # mdi-power-plug-battery
+                text_color: 0x10B981  # Yeşil
+
+      # Batarya modundaysa — voltaja göre dinamik pil ikonu göster
       - if:
           condition:
             binary_sensor.is_on: batarya_modu
           then:
             - lvgl.label.update:
                 id: header_power_icon
-                text: "\U000F0079" # Pil ikonu
-                text_color: 0xEF4444 # Kırmızı
-          else:
-            - lvgl.label.update:
-                id: header_power_icon
-                text: "\U000F1C3B" # Priz ikonu
-                text_color: 0x10B981 # Yeşil
-      - if:
-          condition:
-            binary_sensor.is_on: batarya_modu
-          then:
-            - logger.log: "!!! KRİTİK VOLTAJ !!! Pil tükenmek üzere, uyku döngüsüne giriliyor."
-            - lvgl.pause: 
-            - light.turn_off: ekran_arka_isigi
-            - delay: 2s
-            # 15 dakikalık derin uyku döngüsü. Her 15 dk'da bir uyanıp güç ve pili kontrol eder.
-            #- deep_sleep.enter:
-            #    id: derin_uyku
-            #    sleep_duration: 15min
+                text: !lambda |-
+                  static char buf[10];
+                  std::string icon;
+                  if (x >= 100.0)      icon = "\U000F0079"; // mdi-battery (full)
+                  else if (x > 90)     icon = "\U000F0082"; // mdi-battery-90
+                  else if (x > 80)     icon = "\U000F0081"; // mdi-battery-80
+                  else if (x > 70)     icon = "\U000F0080"; // mdi-battery-70
+                  else if (x > 60)     icon = "\U000F007F"; // mdi-battery-60
+                  else if (x > 50)     icon = "\U000F007E"; // mdi-battery-50
+                  else if (x > 40)     icon = "\U000F007D"; // mdi-battery-40
+                  else if (x > 30)     icon = "\U000F007C"; // mdi-battery-30
+                  else if (x > 20)     icon = "\U000F007B"; // mdi-battery-20
+                  else if (x > 10)     icon = "\U000F007A"; // mdi-battery-10
+                  else if (x > 0)      icon = "\U000F008E"; // mdi-battery-outline
+                  else                 icon = "\U000F0091"; // mdi-battery-unknown
+                  snprintf(buf, sizeof(buf), "%s", icon.c_str());
+                  return buf;
+                text_color: !lambda |-
+                  // Seviyeye göre renk: yeşil → sarı → kırmızı
+                  if (x > 50) return lv_color_hex(0x10B981);  // Yeşil
+                  if (x > 20) return lv_color_hex(0xF59E0B);  // Turuncu
+                  return lv_color_hex(0xEF4444);               // Kırmızı (kritik)
+ 
 
   - platform: wifi_signal
     id: wifi_rssi

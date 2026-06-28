@@ -10,17 +10,17 @@ esphome:
       - lvgl.page.show: page_boot
       - if:
           condition:
-            binary_sensor.is_on: sebeke_gucu
+            binary_sensor.is_on: batarya_modu
           then:
-            - lvgl.label.update:
-                id: header_power_icon
-                text: "\U000F1C3B" # Priz ikonu
-                text_color: 0x10B981 # Yeşil
-          else:
             - lvgl.label.update:
                 id: header_power_icon
                 text: "\U000F0079" # Pil ikonu
                 text_color: 0xEF4444 # Kırmızı
+          else:
+            - lvgl.label.update:
+                id: header_power_icon
+                text: "\U000F1C3B" # Priz ikonu
+                text_color: 0x10B981 # Yeşil
 
       # 6. Saniye: Ana Ekran Geçişi
       - delay: 3s
@@ -129,7 +129,6 @@ wifi:
 #deep_sleep:
 #  id: derin_uyku
 #  run_duration: 20s
-
 
 # WAKE UP PIN MUHTEMELEN KULLANMAYACAĞIZ
 #  wakeup_pin:
@@ -1503,6 +1502,7 @@ script:
           char buffer[6];
           sprintf(buffer, "%02d:%02d", now.hour, now.minute);
           id(son_yemleme_saati) = buffer;
+          id(son_yemleme_ha).publish_state(id(son_yemleme_saati));
       - delay: 50ms
       - script.execute: yemleme_guncellemesi_ekran
       - lvgl.widget.hide: premium_feed_modal
@@ -1755,14 +1755,6 @@ number:
 
 switch:
   - platform: template
-    name: "ESP WiFi Toggle"
-    icon: "mdi:wifi"
-    turn_on_action:
-      - wifi.enable
-    turn_off_action:
-      - wifi.disable
-
-  - platform: template
     name: "Yemleme 1 Aktif"
     id: yemleme_1_aktif
     optimistic: true
@@ -1963,24 +1955,31 @@ sensor:
             }
             snprintf(buf, sizeof(buf), "%s", icon.c_str());
             return buf;
-#      - if:
-#          condition:
-#            lambda: 'return id(pil_voltaji).state < 3.95;'
-#          then:
-#            - logger.log: "!!! KRİTİK VOLTAJ !!! Pil tükenmek üzere, zombi modunu önlemek için uyku döngüsüne giriliyor."
-#            - lvgl.pause: 
-#            - light.turn_off: ekran_arka_isigi
-#            - delay: 2s
-#            # 15 dakikalık derin uyku döngüsü. Her 15 dk'da bir uyanıp şebekeyi ve pili kontrol eder.
-#            - deep_sleep.enter:
-#                id: derin_uyku
-#                sleep_duration: 15min
-
-  - platform: uptime
-    name: "Uptime Sensor"
-    id: uptime_sensor_seconds
-    entity_category: diagnostic
-    internal: true
+      - if:
+          condition:
+            binary_sensor.is_on: batarya_modu
+          then:
+            - lvgl.label.update:
+                id: header_power_icon
+                text: "\U000F0079" # Pil ikonu
+                text_color: 0xEF4444 # Kırmızı
+          else:
+            - lvgl.label.update:
+                id: header_power_icon
+                text: "\U000F1C3B" # Priz ikonu
+                text_color: 0x10B981 # Yeşil
+      - if:
+          condition:
+            binary_sensor.is_on: batarya_modu
+          then:
+            - logger.log: "!!! KRİTİK VOLTAJ !!! Pil tükenmek üzere, uyku döngüsüne giriliyor."
+            - lvgl.pause: 
+            - light.turn_off: ekran_arka_isigi
+            - delay: 2s
+            # 15 dakikalık derin uyku döngüsü. Her 15 dk'da bir uyanıp güç ve pili kontrol eder.
+            #- deep_sleep.enter:
+            #    id: derin_uyku
+            #    sleep_duration: 15min
 
   - platform: wifi_signal
     id: wifi_rssi
@@ -2026,6 +2025,14 @@ display:
 # METİN SENSÖRLER
 # ============================================================
 text_sensor:
+  - platform: template
+    name: "Son Yemleme"
+    id: son_yemleme_ha
+    icon: "mdi:fish"
+    update_interval: 10s
+    lambda: |-
+      return id(son_yemleme_saati);
+
   - platform: template
     name: "Sonraki Yemleme"
     id: sonraki_yemleme
@@ -2108,9 +2115,17 @@ text_sensor:
       sprintf(buffer, "Günde %d Kez", total);
       return std::string(buffer);
 
+  - platform: template
+    name: "Su Sıcaklığı"
+    id: su_sicakligi_ha
+    icon: "mdi:water"
+    update_interval: 30s
+    lambda: |-
+      return id(water_temp);
+      
   - platform: uptime
     id: uptime_sensor_text
-    name: Uptime
+    name: Çalışma Süresi
     format:
       separator: " "
       days: " Gün"
@@ -2138,20 +2153,13 @@ binary_sensor:
     pin:
       number: GPIO7
       mode: INPUT
-    name: "Şebeke Gücü"
-    id: sebeke_gucu
+      inverted: true
+    name: "Batarya Modu"
+    id: batarya_modu
     filters:
       - delayed_on: 100ms
       - delayed_off: 100ms
     on_press:
-      then:
-        - logger.log: "ELEKTRİK GELDİ: Adaptör Modu"
-        # Ekrandaki ikonu yeşil priz yapar
-        - lvgl.label.update:
-            id: header_power_icon
-            text: "\U000F1C3B"
-            text_color: 0x10B981
-    on_release:
       then:
         - logger.log: "ELEKTRİK KESİLDİ: Batarya Modu!"
         # Ekrandaki ikonu kırmızı/turuncu pil yapar
@@ -2159,3 +2167,11 @@ binary_sensor:
             id: header_power_icon
             text: "\U000F0079"
             text_color: 0xEF4444 # Dikkat çekici kırmızı tonu (Batarya modu)
+    on_release:
+      then:
+        - logger.log: "ELEKTRİK GELDİ: Adaptör Modu"
+        # Ekrandaki ikonu yeşil priz yapar
+        - lvgl.label.update:
+            id: header_power_icon
+            text: "\U000F1C3B"
+            text_color: 0x10B981

@@ -183,7 +183,7 @@ button:
   - platform: template
     name: "Yemlemeyi Başlat"
     id: btn_yemleme_baslat
-    icon: "mdi:fish"
+    icon: "mdi:fishbowl"
     on_press:
       then:
         - espnow.send:
@@ -194,7 +194,7 @@ button:
   - platform: template
     name: "Cihaz Durumunu Sorgula"
     id: btn_durum_iste
-    icon: "mdi:refresh"
+    icon: "mdi:refresh-circle"
     on_press:
       then:
         - espnow.send:
@@ -205,6 +205,7 @@ button:
   - platform: restart
     id: system_restart_btn
     name: "Cihazı Yeniden Başlat"
+    icon: "mdi:restart"
 
 i2c:
   - sda: GPIO8
@@ -1730,6 +1731,7 @@ number:
     name: Ekran Bekleme Süresi
     optimistic: true
     id: ekran_bekleme_suresi
+    icon: "mdi:timer-sand"
     unit_of_measurement: "s"
     initial_value: 30
     restore_value: true
@@ -1741,6 +1743,7 @@ number:
   - platform: template
     name: "Ekran Parlaklığı"
     id: ekran_parlakligi
+    icon: "mdi:brightness-6"
     optimistic: true
     restore_value: true
     min_value: 10   # En düşük %10 (0 yapılması engellendi)
@@ -1757,6 +1760,7 @@ switch:
   - platform: template
     name: "Yemleme 1 Aktif"
     id: yemleme_1_aktif
+    icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     on_turn_on:
@@ -1767,6 +1771,7 @@ switch:
   - platform: template
     name: "Yemleme 2 Aktif"
     id: yemleme_2_aktif
+    icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     on_turn_on:
@@ -1777,6 +1782,7 @@ switch:
   - platform: template
     name: "Yemleme 3 Aktif"
     id: yemleme_3_aktif
+    icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
     on_turn_on:
@@ -1788,6 +1794,7 @@ datetime:
   - platform: template
     id: yemleme_sira_1
     name: "Yemleme 1"
+    icon: "mdi:clock-time-ten-outline"
     type: time
     optimistic: true
     restore_value: true
@@ -1796,6 +1803,7 @@ datetime:
   - platform: template
     id: yemleme_sira_2
     name: "Yemleme 2"
+    icon: "mdi:clock-time-seven-outline"
     type: time
     optimistic: true
     restore_value: true
@@ -1804,6 +1812,7 @@ datetime:
   - platform: template
     id: yemleme_sira_3
     name: "Yemleme 3"
+    icon: "mdi:clock-time-ten-outline"
     type: time
     optimistic: true
     restore_value: true
@@ -1844,7 +1853,7 @@ sensor:
     id: water_temp
     update_interval: 10s
     unit_of_measurement: "°C"
-    icon: "mdi:water-therometer"
+    icon: "mdi:water-thermometer"
     device_class: "temperature"
     accuracy_decimals: 1
     on_value:
@@ -1867,6 +1876,7 @@ sensor:
   - platform: template
     name: "Yem Seviyesi"
     id: yem_seviyesi_sensor
+    icon: "mdi:percent-box"
     unit_of_measurement: "%"
     accuracy_decimals: 0
     on_value:
@@ -2003,6 +2013,7 @@ sensor:
     source_id: wifi_rssi
     id: wifi_signal_percent
     name: "WiFi Sinyal"
+    icon: "mdi:wifi"
     filters: 
       - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
     unit_of_measurement: "%"
@@ -2042,7 +2053,7 @@ text_sensor:
   - platform: template
     name: "Son Yemleme"
     id: son_yemleme_ha
-    icon: "mdi:fish"
+    icon: "mdi:fishbowl-outline"
     update_interval: 10s
     lambda: |-
       return id(son_yemleme_saati);
@@ -2050,6 +2061,7 @@ text_sensor:
   - platform: template
     name: "Sonraki Yemleme"
     id: sonraki_yemleme
+    icon: "mdi:calendar-clock"
     update_interval: 10s
     lambda: |-
       ESPTime now;
@@ -2122,6 +2134,7 @@ text_sensor:
   - platform: template
     name: "Yemleme Döngüsü"
     id: yemleme_dongusu
+    icon: "mdi:repeat"
     update_interval: 10s
     lambda: |-
       int total = (id(yemleme_1_aktif).state ? 1 : 0) + (id(yemleme_2_aktif).state ? 1 : 0) + (id(yemleme_3_aktif).state ? 1 : 0);
@@ -2145,6 +2158,7 @@ text_sensor:
     ip_address:
       name: "IP Adresi"
       id: wifi_ip
+      icon: "mdi:ip-network"
       on_value:
         then:
           - lvgl.label.update:
@@ -2154,6 +2168,7 @@ binary_sensor:
   - platform: status
     name: "Balık Yemleyici"
     id: wifi_status
+    icon: "mdi:access-point-check"
 
   - platform: gpio
     pin:
@@ -2162,6 +2177,7 @@ binary_sensor:
       inverted: true
     name: "Batarya Modu"
     id: batarya_modu
+    icon: "mdi:battery-clock"
     filters:
       - delayed_on: 100ms
       - delayed_off: 100ms

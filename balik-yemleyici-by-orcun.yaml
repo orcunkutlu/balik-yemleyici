@@ -1840,10 +1840,12 @@ touchscreen:
 # ============================================================
 sensor:
   - platform: dallas_temp
-    name: "Water Temperature"
+    name: "Su Sıcaklığı"
     id: water_temp
     update_interval: 10s
     unit_of_measurement: "°C"
+    icon: "mdi:water-therometer"
+    device_class: "temperature"
     accuracy_decimals: 1
     on_value:
       then:
@@ -1856,6 +1858,12 @@ sensor:
                   text:
                     format: "%.1f"
                     args: ['x']
+                  text_color: !lambda |-
+                    if (x < 19.0) return lv_color_hex(0x3B82F6);
+                    if (x < 21.0) return lv_color_hex(0x06B6D4);
+                    if (x <= 23.0) return lv_color_hex(0x10B981);
+                    if (x <= 26.0) return lv_color_hex(0xF59E0B);
+                    return lv_color_hex(0xEF4444);
   - platform: template
     name: "Yem Seviyesi"
     id: yem_seviyesi_sensor
@@ -1868,6 +1876,12 @@ sensor:
             text:
               format: "%.0f %%"
               args: ['x']
+            text_color: !lambda |-
+              if (x < 15.0) return lv_color_hex(0xEF4444);
+              if (x < 30.0) return lv_color_hex(0xF59E0B);
+              if (x < 50.0) return lv_color_hex(0xFBBF24);
+              if (x < 75.0) return lv_color_hex(0x84CC16);
+              return lv_color_hex(0x10B981);
   # 1. Ham Voltajı Okuyan ve Gerçek Pil Voltajına Dönüştüren Sensör
   - platform: adc
     pin: GPIO5
@@ -2115,14 +2129,6 @@ text_sensor:
       sprintf(buffer, "Günde %d Kez", total);
       return std::string(buffer);
 
-  - platform: template
-    name: "Su Sıcaklığı"
-    id: su_sicakligi_ha
-    icon: "mdi:water"
-    update_interval: 30s
-    lambda: |-
-      return id(water_temp);
-      
   - platform: uptime
     id: uptime_sensor_text
     name: Çalışma Süresi

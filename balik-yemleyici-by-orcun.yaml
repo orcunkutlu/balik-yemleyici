@@ -17,6 +17,8 @@ esphome:
       - lvgl.page.show: page_home
       - lvgl.widget.show: navbar_container
       - lvgl.widget.show: hdr_shb_bar
+      # Ekranı başlangıçta güncelle
+      - script.execute: yemleme_guncellemesi_ekran
 
 esp32:
   variant: esp32s3
@@ -72,7 +74,7 @@ spi:
     mosi_pin: GPIO11
     miso_pin: GPIO13
 wifi:
-  power_save_mode: NONE
+  power_save_mode: LIGHT
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   reboot_timeout: 0s
@@ -146,7 +148,7 @@ espnow:
           case 0x10:
             if (size >= 2) {
               uint8_t durum_kodu = data[1];
-              ESP_LOGI("EspNow_Servo", "[0x10] Servo modülü çevrimiçi (Ayakta). Durum Kodu: 0x%02X", durum_kodu);
+              ESP_LOGI("EspNow_Servo", "[0x10] Servo modülü çevrimiçi. Durum Kodu: 0x%02X", durum_kodu);
               // İleride ana ekrana "Servo Bağlantısı: OK" yazdırmak istersen 
               // burayı bir template binary_sensor tetiklemek için kullanabiliriz.
             }
@@ -177,9 +179,7 @@ button:
     icon: "mdi:fishbowl"
     on_press:
       then:
-        - espnow.send:
-            address: !secret servo_mac_address
-            data: [0x01]
+        - script.execute: yemleme_script
         - logger.log: "YEMLEME_KOMUTU (0x01) gönderildi."
   # 2. Alıcı Cihazdan Durum Raporu İsteyen Buton (0x03 Komutu)
   - platform: template
@@ -224,6 +224,8 @@ font:
       - "%"
       - "("
       - ")"
+      - "["
+      - "]"
       - "!"
       - "*"
       - "+"
@@ -1923,8 +1925,9 @@ sensor:
     accuracy_decimals: 2
     filters:
       - multiply: 2.0
-
-
+      - sliding_window_moving_average:
+          window_size: 15
+          send_every: 3
 ################################################################
 #    VOLTAJ YUZDE KISMINI KULLANMAK DAHA MANTIKLI GELDI
 ################################################################
@@ -1980,7 +1983,6 @@ sensor:
             - lvgl.label.update:
                 id: header_power_icon
                 text: !lambda |-
-                  static char buf[10];
                   std::string icon;
                   if (x >= 100.0)      icon = "\U000F0079"; // mdi-battery (full)
                   else if (x > 90)     icon = "\U000F0082"; // mdi-battery-90
@@ -1994,26 +1996,24 @@ sensor:
                   else if (x > 10)     icon = "\U000F007A"; // mdi-battery-10
                   else if (x > 0)      icon = "\U000F008E"; // mdi-battery-outline
                   else                 icon = "\U000F0091"; // mdi-battery-unknown
-                  snprintf(buf, sizeof(buf), "%s", icon.c_str());
-                  return buf;
+                  return icon;
                 text_color: !lambda |-
                   // Seviyeye göre renk: yeşil → sarı → kırmızı
                   if (x > 50) return lv_color_hex(0x10B981);  // Yeşil
                   if (x > 20) return lv_color_hex(0xF59E0B);  // Turuncu
                   return lv_color_hex(0xEF4444);               // Kırmızı (kritik)
- 
-
   - platform: wifi_signal
     id: wifi_rssi
     update_interval: 60s
-
   - platform: copy
     source_id: wifi_rssi
     id: wifi_signal_percent
     name: "WiFi Sinyal"
     icon: "mdi:wifi"
     filters: 
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+      - lambda: |-
+          if (isnan(x)) return 0.0;
+          return min(max(2 * (x + 100.0), 0.0), 100.0);
     unit_of_measurement: "%"
     entity_category: "diagnostic"
     device_class: ""
@@ -2043,7 +2043,6 @@ display:
     invert_colors: false
     auto_clear_enabled: false
     update_interval: never
-
 # ============================================================
 # METİN SENSÖRLER
 # ============================================================
@@ -2055,7 +2054,6 @@ text_sensor:
     update_interval: 10s
     lambda: |-
       return id(son_yemleme_saati);
-
   - platform: template
     name: "Sonraki Yemleme"
     id: sonraki_yemleme
@@ -2070,14 +2068,12 @@ text_sensor:
       } else {
         return std::string("Zaman Bekleniyor...");
       }
-
       // Şu anki zamanı gece yarısından itibaren toplam dakika cinsine çeviriyoruz
       int simdi_dk = now.hour * 60 + now.minute;
       int en_yakin_fark = 9999;
       std::string sonraki_plan_adi = "";
       int hedef_saat = 0, hedef_dakika = 0;
       bool herhangi_biri_aktif = false;
-
       // ---- PLAN 1 KONTROL ----
       if (id(yemleme_1_aktif).state) {
         herhangi_biri_aktif = true;
@@ -2091,7 +2087,6 @@ text_sensor:
           hedef_dakika = id(yemleme_sira_1).minute;
         }
       }
-
       // ---- PLAN 2 KONTROL ----
       if (id(yemleme_2_aktif).state) {
         herhangi_biri_aktif = true;
@@ -2105,7 +2100,6 @@ text_sensor:
           hedef_dakika = id(yemleme_sira_2).minute;
         }
       }
-
       // ---- PLAN 3 KONTROL ----
       if (id(yemleme_3_aktif).state) {
         herhangi_biri_aktif = true;
@@ -2119,16 +2113,13 @@ text_sensor:
           hedef_dakika = id(yemleme_sira_3).minute;
         }
       }
-
       if (!herhangi_biri_aktif) {
-        return std::string("Aktif Plan Yok");
+        return std::string("Yemleme Kapalı! Aktif Plan Yok");
       }
-
       // Ekrana basılacak format: "Plan 1 (08:30)"
       char buf[32];
       snprintf(buf, sizeof(buf), "%s (%02d:%02d)", sonraki_plan_adi.c_str(), hedef_saat, hedef_dakika);
       return std::string(buf);
-
   - platform: template
     name: "Yemleme Döngüsü"
     id: yemleme_dongusu
@@ -2139,7 +2130,6 @@ text_sensor:
       char buffer[4];
       sprintf(buffer, "Günde %d Kez", total);
       return std::string(buffer);
-
   - platform: uptime
     id: uptime_sensor_text
     name: Çalışma Süresi
@@ -2151,7 +2141,6 @@ text_sensor:
       seconds: " saniye"
     update_interval: 60s
     icon: mdi:clock-start
-
   - platform: wifi_info
     ip_address:
       name: "IP Adresi"
@@ -2161,12 +2150,27 @@ text_sensor:
         then:
           - lvgl.label.update:
               id: lbl_info_ip
-              text: !lambda 'return x.c_str();'
+              text: !lambda |-
+                if (x.empty()) {
+                  return "Çevrimdışı";
+                } else {
+                  return x.c_str();
+                }
 binary_sensor:
   - platform: status
     name: "Balık Yemleyici"
     id: wifi_status
     icon: "mdi:access-point-check"
+    on_state:
+      then:
+        - lvgl.label.update:
+            id: lbl_info_ip
+            text: !lambda |-
+              if (id(wifi_status).state) {
+                return id(wifi_ip).state.c_str();
+              } else {
+                return "Çevrimdışı";
+              }
 
   - platform: gpio
     pin:

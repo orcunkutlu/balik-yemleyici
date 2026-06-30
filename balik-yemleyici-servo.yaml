@@ -2,11 +2,9 @@
 # BALIK YEMLEYICI SERVO MODÜLÜ
 # ESP32-CAM AI-Thinker + SERVO + Vl53l0X
 # ========================================================
-
 esphome:
   name: balik-yemleyici-servo
   friendly_name: Balık Yemleyici Servo
-
 esp32:
   board: esp32cam
   framework:
@@ -15,7 +13,7 @@ esp32:
       sram1_as_iram: true
       minimum_chip_revision: "3.1"
 wifi:
-  power_save_mode: NONE
+  power_save_mode: LIGHT
   id: wifi_durum
   ssid: !secret wifi_ssid
   password: !secret wifi_password
@@ -27,7 +25,6 @@ wifi:
     subnet: !secret wifi_subnet
     dns1: 1.1.1.1
     dns2: 8.8.8.8
-
 # ========================================================
 # ESP-NOW: Ana cihazdan komut alma
 # ========================================================
@@ -42,15 +39,12 @@ espnow:
           ESP_LOGW("espnow", "Bos paket alindi, atlaniyor");
           return;
         }
-        
         uint8_t komut = data[0];
-        
         switch (komut) {
           case 0x01:  // YEMLEME_KOMUTU
             ESP_LOGI("espnow", "YEMLEME_KOMUTU alindi!");
             id(yemleme_script).execute();
             break;
-            
           case 0x02:  // SERVO_ACI_AYARLA
             if (size >= 2) {
               int8_t aci = (int8_t)data[1];
@@ -61,7 +55,6 @@ espnow:
               id(servo_acisi_hedef) = aci;
             }
             break;
-            
           case 0x03:  // DURUM_ISTE
             ESP_LOGI("espnow", "Durum istegi alindi");
             id(durum_gonder_script).execute();
@@ -74,7 +67,6 @@ espnow:
             ESP_LOGW("espnow", "Bilinmeyen komut: 0x%02X", komut);
             break;
         }
-
 logger:
   level: DEBUG
 
@@ -82,7 +74,6 @@ api:
   reboot_timeout: 0s
   encryption:
     key: "9kKnZ/GA8GOJkSP13pSMAyJK8xtURfB8yPVRTIeUdHk="
-
 ota:
   - platform: esphome
 i2c:
@@ -144,7 +135,6 @@ sensor:
     on_value:
       then:
         - script.execute: yem_seviyesi_gonder
-
 # ========================================================
 # GLOBALS
 # ========================================================
@@ -153,7 +143,6 @@ globals:
     type: int
     restore_value: no
     initial_value: "92"
-
 # ========================================================
 # SCRIPTS
 # ========================================================
@@ -163,19 +152,16 @@ script:
     then:
       # Flaş LED aç
       - output.turn_on: flash_led
-      
       # 1. Baslangic pozisyonu (kapali)
       - servo.write:
           id: yemleyici_servo
           level: -100%
       - delay: 300ms
-      
       # 2. Kapak acma (yem dokulme)
       - servo.write:
           id: yemleyici_servo
           level: !lambda "return id(servo_acisi_hedef) / 100.0;"
       - delay: 1000ms
-      
       # 3. Silkelenme (takilma onleme)
       - servo.write:
           id: yemleyici_servo
@@ -189,13 +175,10 @@ script:
           id: yemleyici_servo
           level: -100%
       - delay: 150ms
-      
       # 4. Servo enerjisini kes (Isınmayı ve titremeyi önler)
       - servo.detach: yemleyici_servo
-      
       # Flaş LED kapat
       - output.turn_off: flash_led
-
   - id: durum_gonder_script
     mode: single
     then:
@@ -203,7 +186,6 @@ script:
           address: !secret baliktank_mac_address
           data: [0x10, 0x01]
       - logger.log: "Durum verisi gönderildi."
-
   - id: yem_seviyesi_gonder
     mode: single
     then:
@@ -212,13 +194,14 @@ script:
           data: !lambda |-
             uint8_t yuzde = (uint8_t)id(yem_seviyesi_sensoru).state;
             return {0x03, 0x00, yuzde};
-      - logger.log: "Yem seviyesi (0x03) ESP-NOW ile gönderildi."
+      - lambda: |-
+          ESP_LOGI("espnow", "Yem seviyesi (%% %u) ESP-NOW ile gönderildi.", (unsigned int)id(yem_seviyesi_sensoru).state);
   - id: uyku_modu
     mode: single
     then:
       - deep_sleep.enter:
-          - id: derin_uyku
-          - sleep_duration: 15min
+          id: derin_uyku
+          sleep_duration: 15min
 # ========================================================
 # INTERVALS
 # ========================================================

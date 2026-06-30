@@ -1507,7 +1507,7 @@ script:
           red: 0%
           green: 0%
       - lvgl.widget.show: premium_feed_modal
-      - delay: 2000ms
+      - delay: 1000ms
       - light.turn_off: rgb_led
       - delay: 100ms
       - lambda: |-
@@ -1862,6 +1862,7 @@ touchscreen:
               condition: lvgl.is_paused
               then:
                 - lvgl.resume:
+                - light.turn_on: ekran_arka_isigi
 # ============================================================
 # SENSÖRLER
 # ============================================================

@@ -486,7 +486,6 @@ lvgl:
                             - lvgl.label.update: { id: header_title, text: "Ana Ekran" }
                             - lvgl.matrix.button.update: { id: nav_home, control: {checked: true} }
                             - lvgl.matrix.button.update: { id: nav_feed, control: {checked: false} }
-                            - lvgl.matrix.button.update: { id: nav_log, control: {checked: false} }
                             - lvgl.matrix.button.update: { id: nav_set, control: {checked: false} }
                                 
                       - id: nav_feed
@@ -500,21 +499,6 @@ lvgl:
                             - lvgl.label.update: { id: header_title, text: "Zamanlama Planı" }
                             - lvgl.matrix.button.update: { id: nav_home, control: {checked: false} }
                             - lvgl.matrix.button.update: { id: nav_feed, control: {checked: true} }
-                            - lvgl.matrix.button.update: { id: nav_log, control: {checked: false} }
-                            - lvgl.matrix.button.update: { id: nav_set, control: {checked: false} }
-                                
-                      - id: nav_log
-                        text: "\U000F0C9E"
-                        width: 1
-                        control:
-                          checkable: true
-                        on_press:
-                          then:
-                            - lvgl.page.show: page_log
-                            - lvgl.label.update: { id: header_title, text: "Sistem Kayıtları" }
-                            - lvgl.matrix.button.update: { id: nav_home, control: {checked: false} }
-                            - lvgl.matrix.button.update: { id: nav_feed, control: {checked: false} }
-                            - lvgl.matrix.button.update: { id: nav_log, control: {checked: true} }
                             - lvgl.matrix.button.update: { id: nav_set, control: {checked: false} }
                                 
                       - id: nav_set
@@ -528,7 +512,6 @@ lvgl:
                             - lvgl.label.update: { id: header_title, text: "Cihaz Ayarlar" }
                             - lvgl.matrix.button.update: { id: nav_home, control: {checked: false} }
                             - lvgl.matrix.button.update: { id: nav_feed, control: {checked: false} }
-                            - lvgl.matrix.button.update: { id: nav_log, control: {checked: false} }
                             - lvgl.matrix.button.update: { id: nav_set, control: {checked: true} }
 
   # ÜST KATMAN - Bildirimler, popup ve header gibi her şeyin üstünde ezerek duracak yapılar
@@ -1237,66 +1220,6 @@ lvgl:
                             char buf[4];
                             sprintf(buf, "%02d", m);
                             return std::string(buf);
-    - id: page_log
-      bg_color: 0x08142D
-      pad_all: 0
-      widgets:
-        # SİSTEM KONTROL PANELDEN LOG MATRİSİNE GEÇİŞ
-        - obj:
-            x: 10
-            y: 48
-            width: 220
-            height: 220
-            bg_color: 0x030712 # Tam bir terminal hissi için ultra koyu arka plan
-            radius: 12
-            border_width: 1
-            border_color: 0x1F2937
-            pad_all: 8
-            scrollbar_mode: "OFF"
-            widgets:
-              - label: {text: "\U000F0C9E", x: 6, y: 4, text_font: mdi_icons, text_color: 0x10B981}
-              - label: {text: "Sistem Donanım Durumu", x: 34, y: 8, text_font: font_12, text_color: 0xF3F4F6}
-              
-              # Alt çizgi çizgisel ayırıcı
-              - line:
-                  x: 6
-                  y: 32
-                  width: 196
-                  height: 2
-                  points: 
-                    - [0,0]
-                    - [196,0]
-                  line_color: 0x1F2937
-
-              # CANLI VERİ ETİKETLERİ
-              - label: {text: "Cihaz IP:", x: 6, y: 42, text_font: font_12, text_color: 0x9CA3AF}
-              - label: {id: lbl_info_ip, text: "Bağlanıyor...", x: 100, y: 42, text_font: font_12, text_color: 0xF9FAFB}
-
-              - label: {text: "Sinyal Gücü:", x: 6, y: 64, text_font: font_12, text_color: 0x9CA3AF}
-              - label: {id: lbl_info_wifi_signal, text: "%00 (--- %)", x: 100, y: 64, text_font: font_12, text_color: 0xF9FAFB}
-
-              - label: {text: "Dahili RAM:", x: 6, y: 86, text_font: font_12, text_color: 0x9CA3AF}
-              - label: {id: lbl_info_ram, text: "0.00 MB", x: 100, y: 86, text_font: font_12, text_color: 0x38BDF8}
-
-              - label: {text: "Harici PSRAM:", x: 6, y: 108, text_font: font_12, text_color: 0x9CA3AF}
-              - label: {id: lbl_info_psram, text: "0.00 MB", x: 100, y: 108, text_font: font_12, text_color: 0x22D3EE}
-
-              - label: {text: "İşlemci / Flaş:", x: 6, y: 130, text_font: font_12, text_color: 0x9CA3AF}
-              - label: {text: "ESP32-S3 / 16MB", x: 100, y: 130, text_font: font_12, text_color: 0xFBBF24}
-
-              # RESTART BUTONU (Log ekranının altına donanım müdahalesi olarak çok yakışacak)
-              - button:
-                  x: 6
-                  y: 165
-                  width: 196
-                  height: 34
-                  bg_color: 0x991B1B # Kırmızı tehlike/sistem rengi
-                  radius: 8
-                  widgets:
-                    - label: {text: "CİHAZI YENİDEN BAŞLAT", align: CENTER, text_font: font_12, text_color: 0xFFFFFF}
-                  on_click:
-                    then:
-                      - button.press: system_restart_btn
 
     - id: page_settings
       bg_color: 0x08142D

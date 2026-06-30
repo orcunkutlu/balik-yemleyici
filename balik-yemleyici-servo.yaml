@@ -66,7 +66,10 @@ espnow:
             ESP_LOGI("espnow", "Durum istegi alindi");
             id(durum_gonder_script).execute();
             break;
-            
+          case 0x04: // Derin UYKUYA gir
+            ESP_LOGI("espnow", "Uykuya giriyorum");
+            id(uyku_modu).execute();
+            break;
           default:
             ESP_LOGW("espnow", "Bilinmeyen komut: 0x%02X", komut);
             break;
@@ -87,6 +90,9 @@ i2c:
     scl: GPIO14
     scan: true
     frequency: 100kHz
+deep_sleep:
+  id: derin_uyku
+  run_duration: 20s
 # ========================================================
 # OUTPUTS
 # ========================================================
@@ -207,6 +213,12 @@ script:
             uint8_t yuzde = (uint8_t)id(yem_seviyesi_sensoru).state;
             return {0x03, 0x00, yuzde};
       - logger.log: "Yem seviyesi (0x03) ESP-NOW ile gönderildi."
+  - id: uyku_modu
+    mode: single
+    then:
+      - deep_sleep.enter:
+          - id: derin_uyku
+          - sleep_duration: 15min
 # ========================================================
 # INTERVALS
 # ========================================================

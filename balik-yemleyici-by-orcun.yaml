@@ -168,6 +168,7 @@ image:
     id: boot_logo
     type: RGB565
     resize: 180x180
+    transparency: alpha_channel
 
 button:
   - platform: template
@@ -740,7 +741,7 @@ lvgl:
                         long_mode: CLIP
                         text_font: font_24
               - obj:
-                  id: sicaklik_card
+                  id: yem_card
                   x: 4
                   y: 48
                   width: 232
@@ -760,18 +761,18 @@ lvgl:
                     - obj:
                         id: btn_yemle_layer
                         x: 0
-                        y: 40
-                        width: 230
-                        height: 42
-                        align: TOP_MID
+                        y: 0
+                        width: 90
+                        height: 82
                         bg_opa: 0%
+                        radius: 16
                         border_width: 0
                         pad_all: 0
                         widgets:
                           - obj:
                               id: btn_yemle_outer
-                              x: 16
-                              y: -38
+                              x: 7
+                              y: 4
                               width: 76
                               height: 76
                               bg_color: 0x5500FF
@@ -785,6 +786,16 @@ lvgl:
                               pad_all: 0
                               scrollbar_mode: "OFF"
                               widgets:
+                                - label:
+                                    id: yem_seviyesi_label
+                                    x: 100
+                                    y: 5
+                                    width: 96
+                                    height: 24
+                                    text_align: CENTER
+                                    text: "Yem Seviyesi"
+                                    text_color: 0xFFFFFF
+                                    text_font: font_16
                                 - obj:
                                     id: btn_yemle_label_layer
                                     x: 0
@@ -797,36 +808,42 @@ lvgl:
                                     radius: 66
                                     pad_all: 0
                                     widgets:
-                                      - label:
-                                          id: btn_yemle_label
-                                          x: -20
-                                          y: -16
+                                      - button:
+                                          id: btn_yemle_button
+                                          x: 0
+                                          y: 0
+                                          width: 70
+                                          height: 70
                                           align: CENTER
-                                          text: "HEMEN\nYEMLE"
+                                          bg_color: 0x4F46E5
+                                          radius: 66
+                                          checkable: false
                                           text_color: 0xFFFFFF
                                           text_align: CENTER
-                    - label:
-                        id: yem_seviyesi_label
-                        x: 95
-                        y: 5
-                        width: 95
-                        height: 20
-                        text: "Yem Seviyesi"
-                        text_color: 0xFFFFFF
-                        text_font: font_16
+                                          widgets:
+                                            - label:
+                                                id: btn_yemle_label
+                                                text: "HEMEN\nYEMLE"
+                                                x: 0
+                                                y: 0
+                                                align: CENTER
+                                          on_click:
+                                             then:
+                                               - script.execute: yemleme_script
+
                     - label:
                         id: yem_seviyesi_value
                         x: 118
                         y: 31
                         width: 60
                         height: 30
-                        text: "%78"
+                        text: ""
                         text_align: RIGHT
                         text_font: font_24
                         text_color: 0xFFFFFF
                     - bar:
                         id: yem_seviyesi_bar
-                        x: 200
+                        x: 208
                         y: 5
                         width: 10
                         height: 72
@@ -874,7 +891,7 @@ lvgl:
                         y: 36
                         width: 60
                         height: 28
-                        text: "%100"
+                        text: ""
                         text_color: 0xFFFFFF
                         text_align: RIGHT
                         long_mode: CLIP
@@ -1411,9 +1428,9 @@ lvgl:
       widgets:
         - label:
             id: boot_text
-            x: -25
-            y: -50
-            align: BOTTOM_MID
+            x: 0
+            y: 100
+            align: CENTER
             text: "Başlatılıyor..."
             text_color: 0xFFFFFF
             text_font: font_10
@@ -1421,10 +1438,10 @@ lvgl:
         - spinner:
             id: boot_spinner
             x: 0
-            y: -55
+            y: 60
             width: 25
             height: 25
-            align: BOTTOM_MID
+            align: CENTER
             spin_time: 1000ms
             arc_length: 60deg
             arc_color: 0x1C3B6D
@@ -1460,6 +1477,13 @@ script:
             int8_t aci = (int8_t)id(servo_acisi).state;
             return {0x02, (uint8_t)aci};
 
+  - id: espnow_uyku_modu
+    mode: queued
+    then:
+      - logger.log: "ESP-NOW: Pil Kritik! Servo uyku moduna alındı"
+      - espnow.send:
+          address: !secret servo_mac_address
+          data: [0x04]
   - id: yemleme_script
     mode: single
     then:
@@ -1481,11 +1505,9 @@ script:
           red: 0%
           green: 0%
       - lvgl.widget.show: premium_feed_modal
-      - delay: 1000ms
+      - delay: 2000ms
       - light.turn_off: rgb_led
-      - delay: 1100ms
-
-
+      - delay: 100ms
       - lambda: |-
           id(feeding_now) = false;
           auto now = id(rtc_saati).now();
@@ -1538,27 +1560,27 @@ script:
             
             ESP_LOGD("ZAMAN_MOTORU", "Yeni dakika kontrolü yapılıyor: %02d:%02d", aktif_saat.hour, aktif_saat.minute);
 
-            // 1. Plan Kontrolü (yemleme_sira_1)
+            // 1. Plan Kontrolü
             if (id(yemleme_1_aktif).state && 
                 aktif_saat.hour == id(yemleme_sira_1).hour && 
                 aktif_saat.minute == id(yemleme_sira_1).minute) {
-              ESP_LOGI("ZAMAN_MOTORU", "Plan 1 zamanı geldi! Saat: %02d:%02d", id(yemleme_sira_1).hour, id(yemleme_sira_1).minute);
+              ESP_LOGI("Plan 1 Aktif", "Yemleniyor! Saat: %02d:%02d", id(yemleme_sira_1).hour, id(yemleme_sira_1).minute);
               id(yemleme_script).execute();
             }
             
-            // 2. Plan Kontrolü (yemleme_sira_2)
+            // 2. Plan Kontrolü
             if (id(yemleme_2_aktif).state && 
                 aktif_saat.hour == id(yemleme_sira_2).hour && 
                 aktif_saat.minute == id(yemleme_sira_2).minute) {
-              ESP_LOGI("ZAMAN_MOTORU", "Plan 2 zamanı geldi! Saat: %02d:%02d", id(yemleme_sira_2).hour, id(yemleme_sira_2).minute);
+              ESP_LOGI("Plan 2 Aktif", "Yemleniyor! Saat: %02d:%02d", id(yemleme_sira_2).hour, id(yemleme_sira_2).minute);
               id(yemleme_script).execute();
             }
             
-            // 3. Plan Kontrolü (yemleme_sira_3)
+            // 3. Plan Kontrolü
             if (id(yemleme_3_aktif).state && 
                 aktif_saat.hour == id(yemleme_sira_3).hour && 
                 aktif_saat.minute == id(yemleme_sira_3).minute) {
-              ESP_LOGI("ZAMAN_MOTORU", "Plan 3 zamanı geldi! Saat: %02d:%02d", id(yemleme_sira_3).hour, id(yemleme_sira_3).minute);
+              ESP_LOGI("Plan 3 Aktif", "Yemleniyor! Saat: %02d:%02d", id(yemleme_sira_3).hour, id(yemleme_sira_3).minute);
               id(yemleme_script).execute();
             }
           }
@@ -1573,8 +1595,6 @@ script:
       - lvgl.label.update:
           id: siradaki_yem_value
           text: !lambda |-
-            // akilli_yemleme_kontrolu ile aynı öncelik sırası:
-            // Önce internet saati, yoksa RTC, ikisi de yoksa boş döndür
             ESPTime time_now;
             if (id(internet_saati).now().is_valid()) {
               time_now = id(internet_saati).now();
@@ -1624,10 +1644,10 @@ interval:
             
             if (id(internet_saati).now().is_valid()) {
               aktif_saat = id(internet_saati).now();
-              kaynak = "NTP"; // Saat internetten alınıyor
+              kaynak = "NTP";
             } else if (id(rtc_saati).now().is_valid()) {
               aktif_saat = id(rtc_saati).now();
-              kaynak = "RTC"; // İnternet yok, pil devrede
+              kaynak = "RTC";
             } else {
               return std::string("Zaman Bekleniyor...");
             }
@@ -1888,6 +1908,9 @@ sensor:
               if (x < 50.0) return lv_color_hex(0xFBBF24);
               if (x < 75.0) return lv_color_hex(0x84CC16);
               return lv_color_hex(0x10B981);
+        - lvgl.bar.update:
+            id: yem_seviyesi_bar
+            value: !lambda 'return x;'
   # 1. Ham Voltajı Okuyan ve Gerçek Pil Voltajına Dönüştüren Sensör
   - platform: adc
     pin: GPIO5

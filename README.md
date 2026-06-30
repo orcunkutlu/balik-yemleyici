@@ -35,8 +35,6 @@ Proje iki ESP32 cihazdan oluşur:
 .
 ├── balik-yemleyici-by-orcun.yaml   # Ana ESP32-S3 kontrol ünitesi
 ├── balik-yemleyici-servo.yaml      # ESP32-CAM servo/yem seviyesi modülü
-├── balik-yemleyici.yaml            # Eski/alternatif ana yapılandırma
-├── yedek.yaml                      # Yedek yapılandırma
 ├── components/ds3231/              # Yerel DS3231 ESPHome bileşeni
 ├── fonts/                          # Ekranda kullanılan fontlar
 ├── resimler/                       # Logo ve sistem şeması
@@ -123,11 +121,11 @@ Ana cihaz ve servo modülü aynı ESP-NOW kanalında çalışır.
    ```yaml
    wifi_ssid: "WiFi_Adi"
    wifi_password: "WiFi_Sifresi"
-   wifi_static_ip: "10.1.11.161"
-   wifi_gateway: "10.1.11.1"
+   wifi_static_ip: "11.11.11.161"
+   wifi_gateway: "11.11.11.1"
    wifi_subnet: "255.255.255.0"
    servo_mac_address: AA:BB:CC:DD:EE:FF
-   servo_static_ip: "10.1.11.169"
+   servo_static_ip: "11.11.11.169"
    baliktank_mac_address: 11:22:33:44:55:66
    ```
 
@@ -167,6 +165,87 @@ Ana cihaz Home Assistant tarafında aşağıdaki kontrolleri ve sensörleri yay�
 Ana cihaz her saniye aktif yemleme planlarını kontrol eder. Saat kaynağı olarak önce NTP kullanılır; internet saati geçerli değilse DS3231 RTC devreye girer. Plan saati geldiğinde ana cihaz ESP-NOW ile servo modülüne `0x01` yemleme komutu gönderir.
 
 Servo modülü komutu alınca kapağı açar, kısa bir silkelenme hareketi yapar ve servo enerjisini keser. VL53L0X sensöründen gelen yem seviyesi düzenli olarak ana cihaza gönderilir ve ekranda/Home Assistant'ta gösterilir.
+
+## Hobi Projesi Olarak Yapım Rehberi
+
+Bu proje bir hobi projesidir. Üretim amaçlı değil; ESPHome, elektronik, mekanik ve yazılımın birlikte çalıştığı, kullanıcı tarafından test edilip geliştirilmesi hedeflenen bir deneysel yapıdır. Bu nedenle, montaj sırasında sabır, dikkatli kablolama ve küçük test adımları önemlidir.
+
+### 1. Gerekli Malzemeler
+
+- 1 adet ESP32-S3 tabanlı ana kontrol kartı
+- 1 adet 2.8" ILI9341 TFT ekran
+- 1 adet XPT2046 dokunmatik kontrolcü
+- 1 adet DS3231 RTC modülü
+- 1 adet DS18B20 su sıcaklığı sensörü
+- 1 adet WS2812 RGB LED
+- 1 adet ESP32-CAM AI-Thinker tabanlı servo modülü
+- 1 adet servo motor
+- 1 adet VL53L0X mesafe sensörü
+- Jumper kablolar, breadboard veya kurutulmuş bağlantı noktaları
+- Güç kaynağı ve gerekirse ayrı servo beslemesi
+- Kasa / montaj parçası, vida ve mekanik destek
+
+> Servo motoru için ayrı 5 V besleme ve ortak toprak bağlantısı kullanın.
+
+### 2. Pin Bağlantıları
+
+#### Ana Kontrol Ünitesi
+
+| İşlev | Pin |
+| --- | --- |
+| TFT SPI CLK | GPIO12 |
+| TFT SPI MOSI | GPIO11 |
+| TFT SPI MISO | GPIO13 |
+| TFT CS | GPIO10 |
+| TFT DC | GPIO9 |
+| TFT RESET | GPIO14 |
+| TFT LED | GPIO6 |
+| Touch CS | GPIO15 |
+| Touch IRQ | GPIO16 |
+| I2C SDA | GPIO8 |
+| I2C SCL | GPIO17 |
+| DS18B20 OneWire | GPIO4 |
+| Pil Voltaj ADC | GPIO5 |
+| Şebeke Gücü Girişi | GPIO7 |
+| RGB LED | GPIO48 |
+
+#### Servo Modülü
+
+| İşlev | Pin |
+| --- | --- |
+| I2C SDA | GPIO13 |
+| I2C SCL | GPIO14 |
+| Servo PWM | GPIO16 |
+| Flash LED | GPIO4 |
+| VL53L0X sensör gücü/temel bağlantıları | 3.3 V / GND |
+
+### 3. Yapım Aşamaları
+
+1. İlk olarak ana kontrol kartını ve servo modülünü ayrı ayrı test edin.
+2. Ekran, dokunmatik ve I2C cihazları tek tek çalıştırıp doğrulayın.
+3. RTC ve sıcaklık sensörünü bağlayıp saat ve sıcaklık değerlerinin okunmasını kontrol edin.
+4. Servo motoru ve VL53L0X sensörünü bağlayıp yemleme hareketini ve seviye ölçümünü test edin.
+5. ESP-NOW haberleşmesini kurup ana cihaz ile servo modülünün birbirini tanımasını sağlayın.
+6. Tüm parçaları tek bir mekanik düzeneğe monte edin; servo kolu ve kapak mekanizması düzgün çalışmalı.
+7. Son olarak yazılım ayarlarını yapıp yemleme planlarını, servo açıklığını ve ekran ayarlarını test edin.
+
+### 4. İlk Açılış ve Kalibrasyon
+
+- `secrets.yaml` dosyasını kendi ağ bilgilerinize ve MAC adreslerinize göre güncelleyin.
+- Her iki ESPHome YAML dosyasını da derleyip yükleyin.
+- İlk açılışta Wi-Fi bağlantısını ve ESP-NOW iletişimini kontrol edin.
+- Servo açıklık yüzdesini ve yemleme hareketini test ederek kapak açma/kapama süresini ayarlayın.
+- Yem seviyesi sensörünü gerçek hazne seviyesine göre kalibre edin.
+
+### 5. Dikkat Edilmesi Gerekenler
+
+- ESP-NOW için iki cihazın MAC adresleri doğru yazılmalıdır.
+- Ana cihazdaki ESP-NOW kanalı `2` olarak ayarlanmış olup servo modülü de aynı kanalda çalışmalıdır.
+- Ana cihaz Wi-Fi bağlantısı kuramazsa `Balik Yemleyici WiFi` adlı fallback erişim noktası açılır.
+- DS3231 yerel bileşeni `components/ds3231` klasöründen yüklenir.
+- Pil yüzdesi 4.2 V tam dolu, 3.3 V boş kabul edilerek hesaplanır.
+- Bu sistem bir hobi projesi olarak tasarlanmıştır; uzun süreli ve kritik uygulamalarda güvenlik ve bakım kontrolleri eklenmelidir.
+- Herhangi bir güç değişimi sonrası yeniden başlatma ve sensör doğrulama yapılmalıdır.
 
 ## Notlar
 

@@ -65,37 +65,6 @@ Proje iki ESP32 cihazdan oluşur:
 | VL53L0X | Yem haznesi seviye ölçümü |
 | Flash LED | Yemleme sırasında durum ışığı |
 
-## Pin Bağlantıları
-
-### Ana Kontrol Ünitesi
-
-| İşlev | Pin |
-| --- | --- |
-| TFT SPI CLK | GPIO12 |
-| TFT SPI MOSI | GPIO11 |
-| TFT SPI MISO | GPIO13 |
-| TFT CS | GPIO10 |
-| TFT DC | GPIO9 |
-| TFT RESET | GPIO14 |
-| TFT arka ışık | GPIO6 |
-| Touch CS | GPIO15 |
-| Touch interrupt | GPIO16 |
-| I2C SDA | GPIO8 |
-| I2C SCL | GPIO17 |
-| DS18B20 OneWire | GPIO4 |
-| Pil voltaj ADC | GPIO2 |
-| Şebeke gücü girişi | GPIO7 |
-| RGB LED | GPIO48 |
-
-### Servo Modülü
-
-| İşlev | Pin |
-| --- | --- |
-| I2C SDA | GPIO13 |
-| I2C SCL | GPIO14 |
-| Servo PWM | GPIO16 |
-| Flash LED | GPIO4 |
-
 ## ESP-NOW Komutları
 
 Ana cihaz ve servo modülü aynı ESP-NOW kanalında çalışır.
@@ -173,14 +142,13 @@ Bu proje bir hobi projesidir. Üretim amaçlı değil; ESPHome, elektronik, meka
 ### 1. Gerekli Malzemeler
 
 - 1 adet ESP32-S3 tabanlı ana kontrol kartı
-- 1 adet 2.8" ILI9341 TFT ekran
-- 1 adet XPT2046 dokunmatik kontrolcü
+- 1 adet ESP32-CAM AI-Thinker tabanlı servo modülü
+- 1 adet 2.8" ILI9341 TFT ekran (XPT2046 dokunmatik)
 - 1 adet DS3231 RTC modülü
 - 1 adet DS18B20 su sıcaklığı sensörü
-- 1 adet WS2812 RGB LED
-- 1 adet ESP32-CAM AI-Thinker tabanlı servo modülü
-- 1 adet servo motor
-- 1 adet VL53L0X mesafe sensörü
+- 1 adet Servo motor (SG90)
+- 1 adet VL53L0X lazer mesafe sensörü
+- 1 adet LX2-BUPS Ups modülü
 - Jumper kablolar, breadboard veya kurutulmuş bağlantı noktaları
 - Güç kaynağı ve gerekirse ayrı servo beslemesi
 - Kasa / montaj parçası, vida ve mekanik destek
@@ -217,7 +185,7 @@ Bu proje bir hobi projesidir. Üretim amaçlı değil; ESPHome, elektronik, meka
 | I2C SCL | GPIO14 |
 | Servo PWM | GPIO16 |
 | Flash LED | GPIO4 |
-| VL53L0X sensör gücü/temel bağlantıları | 3.3 V / GND |
+| VL53L0X | 3.3 V / GND |
 
 ### 3. Yapım Aşamaları
 
@@ -242,10 +210,10 @@ Bu proje bir hobi projesidir. Üretim amaçlı değil; ESPHome, elektronik, meka
 - ESP-NOW için iki cihazın MAC adresleri doğru yazılmalıdır.
 - Ana cihazdaki ESP-NOW kanalı `2` olarak ayarlanmış olup servo modülü de aynı kanalda çalışmalıdır.
 - Ana cihaz Wi-Fi bağlantısı kuramazsa `Balik Yemleyici WiFi` adlı fallback erişim noktası açılır.
+- Balik Yemleyici WiFi bağlanıldığında, açılan arayüzden cihazın wifi bağlantısı yapılabilir.
 - DS3231 yerel bileşeni `components/ds3231` klasöründen yüklenir.
 - Pil yüzdesi 4.2 V tam dolu, 3.3 V boş kabul edilerek hesaplanır.
 - Bu sistem bir hobi projesi olarak tasarlanmıştır; uzun süreli ve kritik uygulamalarda güvenlik ve bakım kontrolleri eklenmelidir.
-- Herhangi bir güç değişimi sonrası yeniden başlatma ve sensör doğrulama yapılmalıdır.
 
 ## Notlar
 

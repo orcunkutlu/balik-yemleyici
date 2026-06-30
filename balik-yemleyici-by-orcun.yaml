@@ -1629,6 +1629,21 @@ script:
             snprintf(buffer, sizeof(buffer), "%02d:%02d", next_feed / 60, next_feed % 60);
             return std::string(buffer);
 
+  - id: guncelle_pil_yuzdesi
+    mode: single
+    then:
+      - sensor.template.publish:
+          id: pil_yuzdesi
+          state: !lambda |-
+            float voltage = id(pil_voltaji).state;
+            if (isnan(voltage)) return 0.0;
+            float max_v = 4.2;
+            float min_v = 3.3;
+            float percentage = ((voltage - min_v) / (max_v - min_v)) * 100.0;
+            if (percentage > 100.0) percentage = 100.0;
+            if (percentage < 0.0) percentage = 0.0;
+            return percentage;
+
 # ============================================================
 # INTERVAL
 # ============================================================
@@ -1929,6 +1944,8 @@ sensor:
       - sliding_window_moving_average:
           window_size: 15
           send_every: 3
+    on_value:
+      - script.execute: guncelle_pil_yuzdesi
 ################################################################
 #    VOLTAJ YUZDE KISMINI KULLANMAK DAHA MANTIKLI GELDI
 ################################################################
@@ -1966,23 +1983,13 @@ sensor:
                     static char buf[8];
                     snprintf(buf, sizeof(buf), "%%%0.0f", x);
                     return buf;
-      # Adaptör modundaysa — priz ikonu, yeşil, ikon güncelleme yeterli
-      - if:
-          condition:
-            binary_sensor.is_off: batarya_modu
-          then:
-            - lvgl.label.update:
-                id: header_power_icon
-                text: "\U000F1C3B"     # mdi-power-plug-battery
-                text_color: 0x10B981  # Yeşil
-
       # Batarya modundaysa — voltaja göre dinamik pil ikonu göster
       - if:
           condition:
             binary_sensor.is_on: batarya_modu
           then:
             - lvgl.label.update:
-                id: header_power_icon
+                id: pil_durum_icon
                 text: !lambda |-
                   std::string icon;
                   if (x >= 100.0)      icon = "\U000F0079"; // mdi-battery (full)

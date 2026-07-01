@@ -68,6 +68,21 @@ time:
 
 web_server:
   port: 80
+  ota: false
+  version: 3
+  sorting_groups:
+    - id: group_feed_control
+      name: "Yemleme Kontrolü"
+      sorting_weight: 10
+    - id: group_schedule
+      name: "Plan & Zamanlama"
+      sorting_weight: 20
+    - id: group_status
+      name: "Durum & Sensörler"
+      sorting_weight: 30
+    - id: group_system
+      name: "Sistem & Ağ"
+      sorting_weight: 40
 spi:
   - id: tft_spi
     clk_pin: GPIO12
@@ -177,6 +192,9 @@ button:
     name: "Yemlemeyi Başlat"
     id: btn_yemleme_baslat
     icon: "mdi:fishbowl"
+    web_server:
+      sorting_group_id: group_feed_control
+      sorting_weight: 10
     on_press:
       then:
         - script.execute: yemleme_script
@@ -186,6 +204,9 @@ button:
     name: "Cihaz Durumunu Sorgula"
     id: btn_durum_iste
     icon: "mdi:refresh-circle"
+    web_server:
+      sorting_group_id: group_feed_control
+      sorting_weight: 20
     on_press:
       then:
         - espnow.send:
@@ -197,6 +218,9 @@ button:
     id: system_restart_btn
     name: "Cihazı Yeniden Başlat"
     icon: "mdi:restart"
+    web_server:
+      sorting_group_id: group_system
+      sorting_weight: 10
 
 i2c:
   - sda: GPIO8
@@ -1310,7 +1334,7 @@ lvgl:
                   widgets:
                     - label: {text: "\U000F0A32", x: 12, y: 12, text_font: mdi_icons, text_color: 0xF59E0B}
                     - label: {text: "Ekran Parlaklığı", x: 42, y: 8, text_font: font_10, text_color: 0xF1F5F9}
-                    - label: {id: lbl_set_brightness, text: "Parlaklık: %80", x: 42, y: 26, text_font: font_10, text_color: 0x8E9FB8}
+                    - label: {id: lbl_set_brightness, text: "%80", x: 42, y: 26, text_font: font_10, text_color: 0x8E9FB8}
                     
                     - button:
                         x: 135
@@ -1327,7 +1351,7 @@ lvgl:
                                 id: lbl_set_brightness
                                 text: !lambda |-
                                   char buf[20];
-                                  snprintf(buf, sizeof(buf), "Mevcut: %%%0.0f", id(ekran_parlakligi).state);
+                                  snprintf(buf, sizeof(buf), "%%%0.0f", id(ekran_parlakligi).state);
                                   return std::string(buf);
                     - button:
                         x: 175
@@ -1344,9 +1368,39 @@ lvgl:
                                 id: lbl_set_brightness
                                 text: !lambda |-
                                   char buf[20];
-                                  snprintf(buf, sizeof(buf), "Mevcut: %%%0.0f", id(ekran_parlakligi).state);
+                                  snprintf(buf, sizeof(buf), "%%%0.0f", id(ekran_parlakligi).state);
                                   return std::string(buf);
+              - obj:
+                  x: 4
+                  y: 112
+                  width: 224
+                  height: 114
+                  bg_color: 0x030712
+                  radius: 12
+                  border_width: 1
+                  border_color: 0x1F2937
+                  scrollbar_mode: "OFF"
+                  pad_all: 6
+                  widgets:
+                    - label: {text: "Cihaz IP:", x: 6, y: 4, text_font: font_10, text_color: 0x9CA3AF}
+                    - label: {id: lbl_info_ip, text: "Bağlanıyor...", x: 90, y: 4, text_font: font_10, text_color: 0xF9FAFB}
 
+                    - label: {text: "WiFi Sinyal:", x: 6, y: 22, text_font: font_10, text_color: 0x9CA3AF}
+                    - label: {id: lbl_info_wifi_signal, text: "%00", x: 90, y: 22, text_font: font_10, text_color: 0xF9FAFB}
+
+                    # SİSTEMİ YENİDEN BAŞLATMA BUTONU
+                    - button:
+                        x: 6
+                        y: 48
+                        width: 200
+                        height: 32
+                        bg_color: 0x991B1B # Kırmızı tehlike/aksiyon rengi
+                        radius: 8
+                        widgets: 
+                          - label: {text: "CİHAZI YENİDEN BAŞLAT", align: CENTER, text_font: font_12, text_color: 0xFFFFFF}
+                        on_click:
+                          then:
+                            - button.press: system_restart_btn
     - id: page_boot
       bg_color: 0x08142D  # Ana derin lacivert arka plan
       pad_all: 0
@@ -1608,6 +1662,9 @@ light:
   - platform: esp32_rmt_led_strip
     name: "RGB LED"
     id: rgb_led
+    web_server:
+      sorting_group_id: group_system
+      sorting_weight: 20
     rgb_order: GRB
     pin: GPIO48
     num_leds: 1
@@ -1621,12 +1678,18 @@ light:
   - platform: lvgl
     name: "Plan Aktif LED Işığı"
     id: plan_aktif_isik
+    web_server:
+      sorting_group_id: group_feed_control
+      sorting_weight: 30
     widget: plan_aktif_led
 
   - platform: monochromatic
     output: tft_led
     name: "Ekran Parlaklığı"
     id: ekran_arka_isigi
+    web_server:
+      sorting_group_id: group_system
+      sorting_weight: 30
     restore_mode: ALWAYS_ON
 # ============================================================
 # DS18B20
@@ -1663,6 +1726,9 @@ number:
   - platform: template
     name: "Yemleyici Servo Açısı"
     id: servo_acisi
+    web_server:
+      sorting_group_id: group_feed_control
+      sorting_weight: 40
     icon: "mdi:angle-acute"
     optimistic: true
     min_value: -100
@@ -1680,13 +1746,16 @@ number:
               int8_t aci_degeri = (int8_t)x;
               return {0x02, (uint8_t)aci_degeri};
         - logger.log:
-            format: "SERVO_ACI_AYARLA (0x02) gönderildi. Yeni Değer: %.0f%%"
+            format: "SERVO_ACI_AYARLA (%.0f%%) komutu gönderildi."
             args: [ x ]
 
   - platform: template
     name: Ekran Bekleme Süresi
     optimistic: true
     id: ekran_bekleme_suresi
+    web_server:
+      sorting_group_id: group_system
+      sorting_weight: 40
     icon: "mdi:timer-sand"
     unit_of_measurement: "s"
     initial_value: 30
@@ -1699,6 +1768,9 @@ number:
   - platform: template
     name: "Ekran Parlaklığı"
     id: ekran_parlakligi
+    web_server:
+      sorting_group_id: group_system
+      sorting_weight: 50
     icon: "mdi:brightness-6"
     optimistic: true
     restore_value: true
@@ -1716,6 +1788,9 @@ switch:
   - platform: template
     name: "Yemleme 1 Aktif"
     id: yemleme_1_aktif
+    web_server:
+      sorting_group_id: group_schedule
+      sorting_weight: 10
     icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
@@ -1727,6 +1802,9 @@ switch:
   - platform: template
     name: "Yemleme 2 Aktif"
     id: yemleme_2_aktif
+    web_server:
+      sorting_group_id: group_schedule
+      sorting_weight: 20
     icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
@@ -1738,6 +1816,9 @@ switch:
   - platform: template
     name: "Yemleme 3 Aktif"
     id: yemleme_3_aktif
+    web_server:
+      sorting_group_id: group_schedule
+      sorting_weight: 30
     icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
@@ -1750,6 +1831,9 @@ datetime:
   - platform: template
     id: yemleme_sira_1
     name: "Yemleme 1"
+    web_server:
+      sorting_group_id: group_schedule
+      sorting_weight: 40
     icon: "mdi:clock-time-ten-outline"
     type: time
     optimistic: true
@@ -1759,6 +1843,9 @@ datetime:
   - platform: template
     id: yemleme_sira_2
     name: "Yemleme 2"
+    web_server:
+      sorting_group_id: group_schedule
+      sorting_weight: 50
     icon: "mdi:clock-time-seven-outline"
     type: time
     optimistic: true
@@ -1768,6 +1855,9 @@ datetime:
   - platform: template
     id: yemleme_sira_3
     name: "Yemleme 3"
+    web_server:
+      sorting_group_id: group_schedule
+      sorting_weight: 60
     icon: "mdi:clock-time-ten-outline"
     type: time
     optimistic: true
@@ -1808,6 +1898,9 @@ sensor:
   - platform: dallas_temp
     name: "Su Sıcaklığı"
     id: water_temp
+    web_server:
+      sorting_group_id: group_status
+      sorting_weight: 10
     update_interval: 10s
     unit_of_measurement: "°C"
     icon: "mdi:water-thermometer"
@@ -1833,6 +1926,9 @@ sensor:
   - platform: template
     name: "Yem Seviyesi"
     id: yem_seviyesi_sensor
+    web_server:
+      sorting_group_id: group_status
+      sorting_weight: 20
     icon: "mdi:percent-box"
     unit_of_measurement: "%"
     accuracy_decimals: 0
@@ -1857,6 +1953,9 @@ sensor:
     pin: GPIO5
     name: "Pil Voltajı"
     id: pil_voltaji
+    web_server:
+      sorting_group_id: group_status
+      sorting_weight: 30
     icon: "mdi:battery"
     update_interval: 15s
     unit_of_measurement: "V"
@@ -1887,6 +1986,9 @@ sensor:
   - platform: template
     name: "Pil Yüzdesi"
     id: pil_yuzdesi
+    web_server:
+      sorting_group_id: group_status
+      sorting_weight: 40
     unit_of_measurement: "%"
     accuracy_decimals: 0
     icon: "mdi:battery"
@@ -1940,6 +2042,9 @@ sensor:
     source_id: wifi_rssi
     id: wifi_signal_percent
     name: "WiFi Sinyal"
+    web_server:
+      sorting_group_id: group_system
+      sorting_weight: 10
     icon: "mdi:wifi"
     filters: 
       - lambda: |-
@@ -1981,6 +2086,9 @@ text_sensor:
   - platform: template
     name: "Son Yemleme"
     id: son_yemleme_ha
+    web_server:
+      sorting_group_id: group_status
+      sorting_weight: 50
     icon: "mdi:fishbowl-outline"
     update_interval: 10s
     lambda: |-
@@ -1988,6 +2096,9 @@ text_sensor:
   - platform: template
     name: "Sonraki Yemleme"
     id: sonraki_yemleme
+    web_server:
+      sorting_group_id: group_status
+      sorting_weight: 60
     icon: "mdi:calendar-clock"
     update_interval: 10s
     lambda: |-
@@ -2054,6 +2165,9 @@ text_sensor:
   - platform: template
     name: "Yemleme Döngüsü"
     id: yemleme_dongusu
+    web_server:
+      sorting_group_id: group_schedule
+      sorting_weight: 70
     icon: "mdi:repeat"
     update_interval: 10s
     lambda: |-
@@ -2064,6 +2178,9 @@ text_sensor:
   - platform: uptime
     id: uptime_sensor_text
     name: Çalışma Süresi
+    web_server:
+      sorting_group_id: group_system
+      sorting_weight: 20
     format:
       separator: " "
       days: " Gün"
@@ -2076,6 +2193,9 @@ text_sensor:
     ip_address:
       name: "IP Adresi"
       id: wifi_ip
+      web_server:
+        sorting_group_id: group_system
+        sorting_weight: 30
       icon: "mdi:ip-network"
       on_value:
         then:
@@ -2091,6 +2211,9 @@ binary_sensor:
   - platform: status
     name: "Balık Yemleyici"
     id: wifi_status
+    web_server:
+      sorting_group_id: group_system
+      sorting_weight: 10
     icon: "mdi:access-point-check"
     on_state:
       then:
@@ -2109,6 +2232,9 @@ binary_sensor:
       mode: INPUT
       inverted: true
     name: "Batarya Modu"
+    web_server:
+      sorting_group_id: group_status
+      sorting_weight: 70
     id: batarya_modu
     icon: "mdi:battery-clock"
     filters:
@@ -2121,10 +2247,10 @@ binary_sensor:
         - lvgl.label.update:
             id: header_power_icon
             text: "\U000F0079"
-            text_color: 0xEF4444 # Dikkat çekici kırmızı tonu (Batarya modu)
+            text_color: 0xEF4444 # (Batarya modu)
     on_release:
       then:
-        - logger.log: "ELEKTRİK GELDİ: Adaptör Modu"
+        - logger.log: "Adaptör Modu"
         # Ekrandaki ikonu yeşil priz yapar
         - lvgl.label.update:
             id: header_power_icon

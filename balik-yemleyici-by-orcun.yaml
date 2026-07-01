@@ -137,11 +137,6 @@ wifi:
 #  id: derin_uyku
 #  run_duration: 20s
 
-# WAKE UP PIN MUHTEMELEN KULLANMAYACAĞIZ
-#  wakeup_pin:
-#    number: GPIO7
-#    mode: INPUT
-#    inverted: false
 espnow:
   enable_on_boot: true
   channel: 2
@@ -198,7 +193,7 @@ button:
     on_press:
       then:
         - script.execute: yemleme_script
-        - logger.log: "YEMLEME_KOMUTU (0x01) gönderildi."
+        - logger.log: "Yemleme (0x01) komutu gönderildi."
   # 2. Alıcı Cihazdan Durum Raporu İsteyen Buton (0x03 Komutu)
   - platform: template
     name: "Cihaz Durumunu Sorgula"
@@ -212,7 +207,7 @@ button:
         - espnow.send:
             address: !secret servo_mac_address
             data: [0x03]
-        - logger.log: "DURUM_ISTE (0x03) komutu gönderildi."
+        - logger.log: "Durum Sorgu (0x03) komutu gönderildi."
 
   - platform: restart
     id: system_restart_btn
@@ -395,7 +390,6 @@ font:
       "\U000F02DC", # mdi-clock
       "\U000F0198", # mdi-cookie
       "\U000F1C3B", # mdi-power-plug-battery
-#      "\U000F0079", # mdi-power-plug
       "\U000F0A32", # mdi-bilmem ne
       "\U000F007A", # mdi-battery-10
       "\U000F007B", # mdi-battery-20

@@ -42,7 +42,7 @@ espnow:
         uint8_t komut = data[0];
         switch (komut) {
           case 0x01:  // YEMLEME_KOMUTU
-            ESP_LOGI("espnow", "YEMLEME_KOMUTU alindi!");
+            ESP_LOGI("espnow", "Yemleme komutu alindi!");
             id(yemleme_script).execute();
             break;
           case 0x02:  // SERVO_ACI_AYARLA

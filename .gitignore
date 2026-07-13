@@ -11,3 +11,9 @@ __pycache__/
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+.esphome/
+.device-builder*
+.receiver_peers.json
+.offloader_pairings.json
+.DS_Store
+secrets.yaml

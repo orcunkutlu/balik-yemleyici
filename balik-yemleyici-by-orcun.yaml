@@ -233,7 +233,7 @@ output:
 # FONTLAR
 # ============================================================
 font:
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_10
     size: 10
     bpp: 4
@@ -326,37 +326,37 @@ font:
       - "w"
       - "y"
       - "z"
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_12
     size: 12
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_14
     size: 14
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_16
     size: 16
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_18
     size: 18
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_24
     size: 24
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_48
     size: 48
     bpp: 4
@@ -376,7 +376,7 @@ font:
       - "7"
       - "8"
       - "9"
-  - file: "fonts/materialdesignicons-webfont.ttf"
+  - file: "/fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons
     size: 24
     bpp: 4
@@ -404,7 +404,7 @@ font:
       "\U000F008E", # mdi-battery-outline
       "\U000F0091", # mdi-battery-unknown
     ]
-  - file: "fonts/materialdesignicons-webfont.ttf"
+  - file: "/fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons_large
     size: 48
     bpp: 4
@@ -469,7 +469,7 @@ lvgl:
           y: 0
           width: 240
           height: 40
-          hidden: true
+          hidden: false
           bg_color: 0x070E1B
           bg_opa: 95%
           border_width: 0
@@ -677,7 +677,7 @@ lvgl:
             x: 0
             y: 0
             width: 240
-            height: 320
+            height: 280
             bg_color: 0x08142D
             scrollbar_mode: "OFF"
             scroll_on_focus: false
@@ -1879,7 +1879,7 @@ touchscreen:
     x_max: 3500
     y_min: 550
     y_max: 3770
-  on_release:
+  on_touch:
     - if:
         condition:
           lambda: 'return !id(feeding_now);'

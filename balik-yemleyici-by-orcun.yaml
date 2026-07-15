@@ -20,6 +20,7 @@ esphome:
       # Ekranı başlangıçta güncelle
       - script.execute: yemleme_guncellemesi_ekran
       - component.update: son_yemleme_ha
+      - lambda: 'id(yem_seviyesi_sensor).publish_state(id(son_yem_seviyesi));'
 
 esp32:
   variant: esp32s3
@@ -155,6 +156,7 @@ espnow:
               uint8_t yem_yuzdesi = data[2];  // data[1] zaten 0x00
               ESP_LOGI("EspNow_Servo", "[0x03] Yem seviyesi: %u%%", yem_yuzdesi);
               id(yem_seviyesi_sensor).publish_state(yem_yuzdesi);
+              id(son_yem_seviyesi) = yem_yuzdesi;
             }
             break;
 
@@ -505,7 +507,7 @@ lvgl:
                             - lvgl.matrix.button.update: { id: nav_feed, control: {checked: true} }
                             - lvgl.matrix.button.update: { id: nav_set, control: {checked: false} }
                             - script.execute: plan_ekran_guncelle
-                            
+                                
                       - id: nav_set
                         text: "\U000F0493"
                         width: 1
@@ -1773,6 +1775,10 @@ globals:
     type: bool
     restore_value: yes
     initial_value: "false"
+  - id: son_yem_seviyesi
+    type: int
+    restore_value: yes
+    initial_value: "0"
 
 number:
   - platform: template
@@ -2019,18 +2025,21 @@ sensor:
       then:
         - lvgl.label.update:
             id: yem_seviyesi_value
-            text:
-              format: "%.0f %%"
-              args: ['x']
+            text: !lambda |-
+              float v = isnan(x) ? 0.0f : x;
+              char buf[8];
+              snprintf(buf, sizeof(buf), "%.0f %%", v);
+              return std::string(buf);
             text_color: !lambda |-
-              if (x < 15.0) return lv_color_hex(0xEF4444);
-              if (x < 30.0) return lv_color_hex(0xF59E0B);
-              if (x < 50.0) return lv_color_hex(0xFBBF24);
-              if (x < 75.0) return lv_color_hex(0x84CC16);
+              float v = isnan(x) ? 0.0f : x;
+              if (v < 15.0) return lv_color_hex(0xEF4444);
+              if (v < 30.0) return lv_color_hex(0xF59E0B);
+              if (v < 50.0) return lv_color_hex(0xFBBF24);
+              if (v < 75.0) return lv_color_hex(0x84CC16);
               return lv_color_hex(0x10B981);
         - lvgl.bar.update:
             id: yem_seviyesi_bar
-            value: !lambda 'return x;'
+            value: !lambda 'return isnan(x) ? 0.0f : x;'
   # 1. Ham Voltajı Okuyan ve Gerçek Pil Voltajına Dönüştüren Sensör
   - platform: adc
     pin: GPIO5

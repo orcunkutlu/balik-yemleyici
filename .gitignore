@@ -17,3 +17,9 @@ __pycache__/
 .offloader_pairings.json
 .DS_Store
 secrets.yaml
+.cache
+/packages/
+/platforms/
+/tools/
+/dist/
+*.json

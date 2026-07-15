@@ -19,6 +19,7 @@ esphome:
       - lvgl.widget.show: hdr_shb_bar
       # Ekranı başlangıçta güncelle
       - script.execute: yemleme_guncellemesi_ekran
+      - component.update: son_yemleme_ha
 
 esp32:
   variant: esp32s3
@@ -26,7 +27,8 @@ esp32:
   flash_size: 16MB
   framework:
     type: esp-idf
-
+    advanced:
+      loop_task_stack_size: 32768
 external_components:
   - source:
       type: local
@@ -125,6 +127,7 @@ wifi:
       - delay: 3s
 
       - light.turn_off: rgb_led
+      
 
   manual_ip:
     static_ip: !secret wifi_static_ip
@@ -234,7 +237,7 @@ output:
 # FONTLAR
 # ============================================================
 font:
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_10
     size: 10
     bpp: 4
@@ -327,37 +330,37 @@ font:
       - "w"
       - "y"
       - "z"
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_12
     size: 12
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_14
     size: 14
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_16
     size: 16
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_18
     size: 18
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_24
     size: 24
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/fonts/ubuntusans_regular.ttf"
     id: font_48
     size: 48
     bpp: 4
@@ -377,7 +380,7 @@ font:
       - "7"
       - "8"
       - "9"
-  - file: "fonts/materialdesignicons-webfont.ttf"
+  - file: "/fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons
     size: 24
     bpp: 4
@@ -405,7 +408,7 @@ font:
       "\U000F008E", # mdi-battery-outline
       "\U000F0091", # mdi-battery-unknown
     ]
-  - file: "fonts/materialdesignicons-webfont.ttf"
+  - file: "/fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons_large
     size: 48
     bpp: 4
@@ -459,7 +462,8 @@ lvgl:
         radius: 12
         text_color: 0xFFFFFF
 
-  bottom_layer:
+  # ÜST KATMAN - Bildirimler, popup ve header gibi her şeyin üstünde ezerek duracak yapılar
+  top_layer:
     bg_opa: 0%
     pad_all: 0
     widgets:
@@ -533,11 +537,6 @@ lvgl:
                             - lvgl.matrix.button.update: { id: nav_feed, control: {checked: false} }
                             - lvgl.matrix.button.update: { id: nav_set, control: {checked: true} }
 
-  # ÜST KATMAN - Bildirimler, popup ve header gibi her şeyin üstünde ezerek duracak yapılar
-  top_layer:
-    bg_opa: 0%
-    pad_all: 0
-    widgets:
       # GLOBAL HEADER
       - obj:
           id: hdr_shb_bar
@@ -612,7 +611,7 @@ lvgl:
                 x: 0
                 y: 0
                 width: 200
-                height: 190
+                height: 290
                 bg_color: 0x070E1B   # Sizin projenin asil koyu laciverti
                 border_width: 1
                 border_color: 0x162038
@@ -657,14 +656,13 @@ lvgl:
                     - spinner:
                         id: modal_spinner
                         x: -1
-                        y: 68
+                        y: 100
                         align: CENTER
-                        width: 25
-                        height: 25
+                        width: 80
+                        height: 80
                         spin_time: 1000ms
-                        arc_length: 60
+                        arc_length: 60deg
                         arc_color: 0x1C3B6D
-                        arc_width: 4
                         indicator:
                           arc_color: 0xFBBF24
   pages:
@@ -895,7 +893,7 @@ lvgl:
                         y: 36
                         width: 60
                         height: 28
-                        text: ""
+                        text: "USB"
                         text_color: 0xFFFFFF
                         text_align: RIGHT
                         long_mode: CLIP
@@ -1402,26 +1400,16 @@ lvgl:
       pad_all: 0
       scrollbar_mode: "OFF"
       widgets:
-        - label:
-            id: boot_text
-            x: 0
-            y: 105
-            align: CENTER
-            text: "Başlatılıyor..."
-            text_color: 0xFFFFFF
-            text_font: font_10
-
         - spinner:
             id: boot_spinner
-            x: 0
-            y: 69
+            x: 1
+            y: 101
             align: CENTER
-            width: 25
-            height: 25
+            width: 80
+            height: 80
             spin_time: 1000ms
-            arc_length: 60
+            arc_length: 60deg
             arc_color: 0x1C3B6D
-            arc_width: 4
             indicator:
               arc_color: 0xFBBF24
 
@@ -1488,13 +1476,19 @@ script:
       - delay: 100ms
       - lambda: |-
           id(feeding_now) = false;
-          auto now = id(rtc_saati).now();
-          if (!now.is_valid()) return;
-          char buffer[6];
-          sprintf(buffer, "%02d:%02d", now.hour, now.minute);
-          id(son_yemleme_saati) = buffer;
-          id(son_yemleme_ha).publish_state(id(son_yemleme_saati));
+          ESPTime now;
+          if (id(internet_saati).now().is_valid()) {
+            now = id(internet_saati).now();
+          } else if (id(rtc_saati).now().is_valid()) {
+            now = id(rtc_saati).now();
+          } else {
+            return;
+          }
+
+          id(son_yemleme_saati) = now.hour * 60 + now.minute;
+      - component.update: son_yemleme_ha
       - delay: 50ms
+
       - script.execute: yemleme_guncellemesi_ekran
       - lvgl.widget.hide: premium_feed_modal
       - logger.log: "Yemleme başarıyla tamamlandı."
@@ -1570,9 +1564,12 @@ script:
     then:
       - lvgl.label.update:
           id: son_yemleme_value
-          text:
-            format: "%s"
-            args: ['id(son_yemleme_saati).c_str()']
+          text: !lambda |-
+            int dk = id(son_yemleme_saati);
+            if (dk < 0) return std::string("--:--");
+            char buf[6];
+            snprintf(buf, sizeof(buf), "%02d:%02d", dk / 60, dk % 60);
+            return std::string(buf);
       - lvgl.label.update:
           id: siradaki_yem_value
           text: !lambda |-
@@ -1604,7 +1601,7 @@ script:
             
             if (next_feed == -1) return std::string("Yok");
             
-            char buffer[16];
+            static char buffer[16];
             snprintf(buffer, sizeof(buffer), "%02d:%02d", next_feed / 60, next_feed % 60);
             return std::string(buffer);
 
@@ -1721,9 +1718,9 @@ globals:
     restore_value: no
     initial_value: "1"
   - id: son_yemleme_saati
-    type: std::string
+    type: int
     restore_value: yes
-    initial_value: '"--:--"'
+    initial_value: '-1'
   - id: plan_aktif
     type: bool
     restore_value: yes
@@ -1771,6 +1768,14 @@ number:
     max_value: 300
     step: 5
     mode: box
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_set_timeout
+            text: !lambda |-
+              char buf[16];
+              snprintf(buf, sizeof(buf), "%0.0f saniye", x);
+              return std::string(buf);
   
   - platform: template
     name: "Ekran Parlaklığı"
@@ -1790,6 +1795,12 @@ number:
         - light.turn_on:
             id: ekran_arka_isigi
             brightness: !lambda 'return x / 100.0;' # % değerini 0.1 - 1.0 arasına çevirir
+        - lvgl.label.update:
+            id: lbl_set_brightness
+            text: !lambda |-
+              char buf[20];
+              snprintf(buf, sizeof(buf), "%%%0.0f", id(ekran_parlakligi).state);
+              return std::string(buf);
 
 switch:
   - platform: template
@@ -2120,7 +2131,11 @@ text_sensor:
     icon: "mdi:fishbowl-outline"
     update_interval: never
     lambda: |-
-      return id(son_yemleme_saati);
+      int dk = id(son_yemleme_saati);
+      if (dk < 0) return std::string("Henüz Yemleme Yok");
+      char buf[6];
+      snprintf(buf, sizeof(buf), "%02d:%02d", dk / 60, dk % 60);
+      return std::string(buf);
   - platform: template
     name: "Sonraki Yemleme"
     id: sonraki_yemleme
@@ -2182,7 +2197,7 @@ text_sensor:
       if (!herhangi_biri_aktif) {
         return std::string("Yemleme Kapalı");
       }
-      char buf[32];
+      static char buf[32]; 
       snprintf(buf, sizeof(buf), "%s (%02d:%02d)", sonraki_plan_adi.c_str(), hedef_saat, hedef_dakika);
       return std::string(buf);
   - platform: template
@@ -2195,7 +2210,7 @@ text_sensor:
     update_interval: never
     lambda: |-
       int total = (id(yemleme_1_aktif).state ? 1 : 0) + (id(yemleme_2_aktif).state ? 1 : 0) + (id(yemleme_3_aktif).state ? 1 : 0);
-      char buffer[16];
+      static char buffer[16];
       snprintf(buffer, sizeof(buffer), "Günde %d Kez", total);
       return std::string(buffer);
   - platform: uptime

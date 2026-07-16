@@ -1536,9 +1536,9 @@ script:
             if (id(secili_plan) == 1) h = id(yemleme_sira_1).hour;
             else if (id(secili_plan) == 2) h = id(yemleme_sira_2).hour;
             else h = id(yemleme_sira_3).hour;
-            char buf[4];
+            char buf[3];
             sprintf(buf, "%02d", h);
-            return std::string(buf);
+            return buf;
       - lvgl.label.update:
           id: txt_plan_min
           text: !lambda |-
@@ -1546,9 +1546,9 @@ script:
             if (id(secili_plan) == 1) m = id(yemleme_sira_1).minute;
             else if (id(secili_plan) == 2) m = id(yemleme_sira_2).minute;
             else m = id(yemleme_sira_3).minute;
-            char buf[4];
+            char buf[3];
             sprintf(buf, "%02d", m);
-            return std::string(buf);
+            return buf;
   - id: akilli_yemleme_kontrolu
     mode: single
     then:
@@ -1673,7 +1673,7 @@ interval:
           id: header_datetime
           text: !lambda |-
             ESPTime aktif_saat;
-            std::string kaynak = "";
+            const char *kaynak = nullptr;
             
             if (id(internet_saati).now().is_valid()) {
               aktif_saat = id(internet_saati).now();
@@ -1682,18 +1682,18 @@ interval:
               aktif_saat = id(rtc_saati).now();
               kaynak = "RTC";
             } else {
-              return std::string("Zaman Bekleniyor...");
+              return "Zaman Bekleniyor...";
             }
             
             const char* aylar[] = {"", "Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"};
             int ay_idx = aktif_saat.month;
             if (ay_idx < 1 || ay_idx > 12) ay_idx = 1;
             
-            char buf[40];
+            char buf[32];
             // Ekranda şu şekilde görünecek: "16 Haz 00:00 [NTP]" veya "16 Haz 00:00 [RTC]"
             snprintf(buf, sizeof(buf), "%02d %s %02d:%02d [%s]", 
-                     aktif_saat.day_of_month, aylar[ay_idx], aktif_saat.hour, aktif_saat.minute, kaynak.c_str());
-            return std::string(buf);
+                     aktif_saat.day_of_month, aylar[ay_idx], aktif_saat.hour, aktif_saat.minute, kaynak != nullptr ? kaynak : "RTC");
+            return buf;
 # ============================================================
 # RGB LED
 # ============================================================
@@ -2053,7 +2053,7 @@ sensor:
             - lvgl.label.update:
                 id: pil_durum_icon
                 text: !lambda |-
-                  std::string icon;
+                  const char *icon = nullptr;
                   if (x >= 100.0)      icon = "\U000F0079"; // mdi-battery (full)
                   else if (x > 90)     icon = "\U000F0082"; // mdi-battery-90
                   else if (x > 80)     icon = "\U000F0081"; // mdi-battery-80
@@ -2145,11 +2145,11 @@ text_sensor:
       } else if (id(rtc_saati).now().is_valid()) {
         now = id(rtc_saati).now();
       } else {
-        return std::string("Zaman Bekleniyor...");
+        return "Zaman Bekleniyor...";
       }
       int simdi_dk = now.hour * 60 + now.minute;
       int en_yakin_fark = 9999;
-      std::string sonraki_plan_adi = "";
+      const char *sonraki_plan_adi = nullptr;
       int hedef_saat = 0, hedef_dakika = 0;
       bool herhangi_biri_aktif = false;
       if (id(yemleme_1_aktif).state) {
@@ -2189,11 +2189,11 @@ text_sensor:
         }
       }
       if (!herhangi_biri_aktif) {
-        return std::string("Yemleme Kapalı");
+        return "Yemleme Kapalı";
       }
       static char buf[32]; 
-      snprintf(buf, sizeof(buf), "%s (%02d:%02d)", sonraki_plan_adi.c_str(), hedef_saat, hedef_dakika);
-      return std::string(buf);
+      snprintf(buf, sizeof(buf), "%s (%02d:%02d)", sonraki_plan_adi != nullptr ? sonraki_plan_adi : "Plan 1", hedef_saat, hedef_dakika);
+      return buf;
   - platform: template
     name: "Yemleme Döngüsü"
     id: yemleme_dongusu

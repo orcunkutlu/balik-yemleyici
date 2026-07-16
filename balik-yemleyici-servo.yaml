@@ -31,7 +31,10 @@ wifi:
     subnet: !secret wifi_subnet
     dns1: 1.1.1.1
     dns2: 8.8.8.8
-# ========================================================
+  on_connect:
+    then:
+      - script.execute: durum_gonder_script
+# =======================================================
 # ESP-NOW: Ana cihazdan komut alma
 # ========================================================
 espnow:

@@ -135,6 +135,7 @@ espnow:
     - !secret servo_mac_address
   on_receive:
     - lambda: |-
+        id(servo_son_gorulme) = millis();   // komut alındıysa servo "canlı" say
         if (size < 1) return;
         uint8_t komut_kodu = data[0];
         switch (komut_kodu) {
@@ -348,6 +349,7 @@ font:
       "\U000F0EF4", # mdi-fishbowl-outline
       "\U000F05A9", # mdi-wifi
       "\U000F05AA", # mdi-wifi-off
+      "\U000F110F", # mdi-shaker-outline
       "\U000F1A85", # mdi-thermometer
       "\U000F0493", # mdi-cog
       "\U000F0C9E", # mdi-chart-box
@@ -493,7 +495,7 @@ lvgl:
                         on_press:
                           then:
                             - lvgl.page.show: page_settings
-                            - lvgl.label.update: { id: header_title, text: "Cihaz Ayarlar" }
+                            - lvgl.label.update: { id: header_title, text: "Cihaz Ayarları" }
                             - lvgl.matrix.button.update: { id: nav_home, control: {checked: false} }
                             - lvgl.matrix.button.update: { id: nav_feed, control: {checked: false} }
                             - lvgl.matrix.button.update: { id: nav_set, control: {checked: true} }
@@ -516,7 +518,7 @@ lvgl:
                 id: header_title
                 x: 14
                 y: 4
-                width: 170
+                width: 130
                 height: 20
                 text: "Ana Ekran"
                 text_color: 0xF1F5F9
@@ -527,11 +529,21 @@ lvgl:
                 id: header_datetime
                 x: 14
                 y: 26
-                width: 170
+                width: 130
                 height: 12
                 text: "16 Haz 00:00"
                 text_color: 0x8E9FB8
                 text_font: font_12
+            - label:
+                id: header_servo_icon
+                x: 170
+                y: 10
+                width: 20
+                height: 20
+                text: "\U000F110F"
+                text_font: mdi_icons
+                text_align: CENTER
+                text_color: 0xEF4444
             - label:
                 id: header_wifi_icon
                 x: 210
@@ -1724,6 +1736,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+  - id: servo_son_gorulme
+    type: int
+    restore_value: no
+    initial_value: '0'
   - id: son_yemleme_dakikasi
     type: int
     restore_value: no
@@ -2266,4 +2282,18 @@ binary_sensor:
             id: pil_durum_value
             text: "USB"
 
-
+  - platform: template
+    name: "Servo Bağlantısı"
+    id: servo_online
+    device_class: connectivity
+    lambda: |-
+      return (id(servo_son_gorulme) != 0) &&
+             (millis() - id(servo_son_gorulme) < 90000);
+    on_press:      # online'a geçince
+      - lvgl.label.update:
+          id: header_servo_icon
+          text_color: 0x22C55E   # yeşil
+    on_release:    # offline'a geçince
+      - lvgl.label.update:
+          id: header_servo_icon
+          text_color: 0xEF4444   # kırmızı (şu anki renginiz)

@@ -124,9 +124,8 @@ wifi:
     dns1: 8.8.8.8
     dns2: 1.1.1.1
 
-deep_sleep:
-  id: derin_uyku
-  run_duration: 20s
+#deep_sleep:
+#  id: derin_uyku
 
 espnow:
   enable_on_boot: true

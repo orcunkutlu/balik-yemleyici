@@ -69,37 +69,24 @@ time:
     time_id: internet_saati
     update_interval: 15min
 
-web_server:
-  port: 80
-  ota: false
-  version: 3
-  sorting_groups:
-    - id: group_feed_control
-      name: "Yemleme Kontrolü"
-      sorting_weight: 10
-    - id: group_schedule
-      name: "Plan & Zamanlama"
-      sorting_weight: 20
-    - id: group_status
-      name: "Durum & Sensörler"
-      sorting_weight: 30
-    - id: group_system
-      name: "Sistem & Ağ"
-      sorting_weight: 40
 spi:
   - id: tft_spi
     clk_pin: GPIO12
     mosi_pin: GPIO11
     miso_pin: GPIO13
 wifi:
-  power_save_mode: LIGHT
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  networks:
+    - ssid: !secret wifi_ssid          # Ev router'ı
+      password: !secret wifi_password
+      channel: 2
   reboot_timeout: 0s
+  fast_connect: true
   post_connect_roaming: false
   ap:
     ssid: "Balik Yemleyici WiFi"
     password: "12345678"
+    channel: 2
+    ap_timeout: 30s
   on_disconnect:
     then:
       - lvgl.label.update:
@@ -137,9 +124,9 @@ wifi:
     dns1: 8.8.8.8
     dns2: 1.1.1.1
 
-#deep_sleep:
-#  id: derin_uyku
-#  run_duration: 20s
+deep_sleep:
+  id: derin_uyku
+  run_duration: 20s
 
 espnow:
   enable_on_boot: true
@@ -193,9 +180,6 @@ button:
     name: "Yemlemeyi Başlat"
     id: btn_yemleme_baslat
     icon: "mdi:fishbowl"
-    web_server:
-      sorting_group_id: group_feed_control
-      sorting_weight: 10
     on_press:
       then:
         - script.execute: yemleme_script
@@ -205,9 +189,6 @@ button:
     name: "Cihaz Durumunu Sorgula"
     id: btn_durum_iste
     icon: "mdi:refresh-circle"
-    web_server:
-      sorting_group_id: group_feed_control
-      sorting_weight: 20
     on_press:
       then:
         - espnow.send:
@@ -219,10 +200,6 @@ button:
     id: system_restart_btn
     name: "Cihazı Yeniden Başlat"
     icon: "mdi:restart"
-    web_server:
-      sorting_group_id: group_system
-      sorting_weight: 10
-
 i2c:
   - sda: GPIO8
     scl: GPIO17
@@ -1493,6 +1470,7 @@ script:
       - delay: 50ms
 
       - script.execute: yemleme_guncellemesi_ekran
+      - delay: 500ms
       - lvgl.widget.hide: premium_feed_modal
       - logger.log: "Yemleme başarıyla tamamlandı."
   - id: plan_isigi_guncelle
@@ -1711,9 +1689,6 @@ light:
   - platform: esp32_rmt_led_strip
     name: "RGB LED"
     id: rgb_led
-    web_server:
-      sorting_group_id: group_system
-      sorting_weight: 20
     rgb_order: GRB
     pin: GPIO48
     num_leds: 1
@@ -1727,19 +1702,13 @@ light:
   - platform: lvgl
     name: "Plan Aktif LED Işığı"
     id: plan_aktif_isik
-    internal: true 
-    web_server:
-      sorting_group_id: group_feed_control
-      sorting_weight: 30
+    internal: true
     widget: plan_aktif_led
 
   - platform: monochromatic
     output: tft_led
     name: "Ekran Parlaklığı"
     id: ekran_arka_isigi
-    web_server:
-      sorting_group_id: group_system
-      sorting_weight: 30
     restore_mode: ALWAYS_ON
 # ============================================================
 # DS18B20
@@ -1784,9 +1753,6 @@ number:
   - platform: template
     name: "Yemleyici Servo Açısı"
     id: servo_acisi
-    web_server:
-      sorting_group_id: group_feed_control
-      sorting_weight: 40
     icon: "mdi:angle-acute"
     optimistic: true
     min_value: -100
@@ -1811,9 +1777,6 @@ number:
     name: Ekran Bekleme Süresi
     optimistic: true
     id: ekran_bekleme_suresi
-    web_server:
-      sorting_group_id: group_system
-      sorting_weight: 40
     icon: "mdi:timer-sand"
     unit_of_measurement: "s"
     initial_value: 30
@@ -1834,9 +1797,6 @@ number:
   - platform: template
     name: "Ekran Parlaklığı"
     id: ekran_parlakligi
-    web_server:
-      sorting_group_id: group_system
-      sorting_weight: 50
     icon: "mdi:brightness-6"
     optimistic: true
     restore_value: true
@@ -1860,9 +1820,6 @@ switch:
   - platform: template
     name: "Yemleme 1 Aktif"
     id: yemleme_1_aktif
-    web_server:
-      sorting_group_id: group_schedule
-      sorting_weight: 10
     icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
@@ -1879,9 +1836,6 @@ switch:
   - platform: template
     name: "Yemleme 2 Aktif"
     id: yemleme_2_aktif
-    web_server:
-      sorting_group_id: group_schedule
-      sorting_weight: 20
     icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
@@ -1899,9 +1853,6 @@ switch:
   - platform: template
     name: "Yemleme 3 Aktif"
     id: yemleme_3_aktif
-    web_server:
-      sorting_group_id: group_schedule
-      sorting_weight: 30
     icon: "mdi:calendar-check"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
@@ -1920,9 +1871,6 @@ datetime:
   - platform: template
     id: yemleme_sira_1
     name: "Yemleme 1"
-    web_server:
-      sorting_group_id: group_schedule
-      sorting_weight: 40
     icon: "mdi:clock-time-ten-outline"
     type: time
     optimistic: true
@@ -1932,9 +1880,6 @@ datetime:
   - platform: template
     id: yemleme_sira_2
     name: "Yemleme 2"
-    web_server:
-      sorting_group_id: group_schedule
-      sorting_weight: 50
     icon: "mdi:clock-time-seven-outline"
     type: time
     optimistic: true
@@ -1944,9 +1889,6 @@ datetime:
   - platform: template
     id: yemleme_sira_3
     name: "Yemleme 3"
-    web_server:
-      sorting_group_id: group_schedule
-      sorting_weight: 60
     icon: "mdi:clock-time-ten-outline"
     type: time
     optimistic: true
@@ -1987,9 +1929,6 @@ sensor:
   - platform: dallas_temp
     name: "Su Sıcaklığı"
     id: water_temp
-    web_server:
-      sorting_group_id: group_status
-      sorting_weight: 10
     update_interval: 10s
     icon: "mdi:water-thermometer"
     device_class: "temperature"
@@ -2015,9 +1954,6 @@ sensor:
   - platform: template
     name: "Yem Seviyesi"
     id: yem_seviyesi_sensor
-    web_server:
-      sorting_group_id: group_status
-      sorting_weight: 20
     icon: "mdi:percent-box"
     unit_of_measurement: "%"
     accuracy_decimals: 0
@@ -2045,9 +1981,6 @@ sensor:
     pin: GPIO5
     name: "Pil Voltajı"
     id: pil_voltaji
-    web_server:
-      sorting_group_id: group_status
-      sorting_weight: 30
     icon: "mdi:battery"
     update_interval: 15s
     unit_of_measurement: "V"
@@ -2083,9 +2016,6 @@ sensor:
   - platform: template
     name: "Pil Yüzdesi"
     id: pil_yuzdesi
-    web_server:
-      sorting_group_id: group_status
-      sorting_weight: 40
     unit_of_measurement: "%"
     accuracy_decimals: 0
     icon: "mdi:battery"
@@ -2138,9 +2068,6 @@ sensor:
     source_id: wifi_rssi
     id: wifi_signal_percent
     name: "WiFi Sinyal"
-    web_server:
-      sorting_group_id: group_system
-      sorting_weight: 10
     icon: "mdi:wifi"
     filters: 
       - lambda: |-
@@ -2182,9 +2109,6 @@ text_sensor:
   - platform: template
     name: "Son Yemleme"
     id: son_yemleme_ha
-    web_server:
-      sorting_group_id: group_status
-      sorting_weight: 50
     icon: "mdi:fishbowl-outline"
     update_interval: never
     lambda: |-
@@ -2196,9 +2120,6 @@ text_sensor:
   - platform: template
     name: "Sonraki Yemleme"
     id: sonraki_yemleme
-    web_server:
-      sorting_group_id: group_status
-      sorting_weight: 60
     icon: "mdi:calendar-clock"
     update_interval: never
     lambda: |-
@@ -2260,9 +2181,6 @@ text_sensor:
   - platform: template
     name: "Yemleme Döngüsü"
     id: yemleme_dongusu
-    web_server:
-      sorting_group_id: group_schedule
-      sorting_weight: 70
     icon: "mdi:repeat"
     update_interval: never
     lambda: |-
@@ -2273,9 +2191,6 @@ text_sensor:
   - platform: uptime
     id: uptime_sensor_text
     name: Çalışma Süresi
-    web_server:
-      sorting_group_id: group_system
-      sorting_weight: 20
     format:
       separator: " "
       days: " Gün"
@@ -2288,9 +2203,6 @@ text_sensor:
     ip_address:
       name: "IP Adresi"
       id: wifi_ip
-      web_server:
-        sorting_group_id: group_system
-        sorting_weight: 30
       icon: "mdi:ip-network"
       on_value:
         then:
@@ -2306,9 +2218,6 @@ binary_sensor:
   - platform: status
     name: "Balık Yemleyici"
     id: wifi_status
-    web_server:
-      sorting_group_id: group_system
-      sorting_weight: 10
     icon: "mdi:access-point-check"
     on_state:
       then:
@@ -2327,9 +2236,6 @@ binary_sensor:
       mode: INPUT
       inverted: true
     name: "Batarya Modu"
-    web_server:
-      sorting_group_id: group_status
-      sorting_weight: 70
     id: batarya_modu
     icon: "mdi:battery-clock"
     filters:

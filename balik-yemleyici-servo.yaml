@@ -8,17 +8,17 @@ esphome:
   on_boot:
     priority: 600
     then:
+      # Race'i önlemek için run_duration'ın otomatik uykusunu HER ZAMAN hemen iptal
+      # ediyoruz (bunun WiFi'nin bağlanmasını beklemesine gerek yok, anında çalışır).
+      # Böylece "ne zaman uyuyacağız" kararını artık run_duration'a değil,
+      # aşağıdaki kendi watchdog'umuza bırakıyoruz.
+      - deep_sleep.prevent: derin_uyku
       - if:
           condition:
             lambda: 'return id(kritik_uyku_modu);'
           then:
-            # Kritik moddayız: ana cihaza "uyandım" de, run_duration dolunca
-            # cevap gelmediyse zaten otomatik tekrar uyuyacak
-            - script.execute: durum_gonder_script
-          else:
-            # Normal mod: run_duration'ın otomatik uyku tetiklemesini iptal et,
-            # cihaz açık kalsın (eskisi gibi her zaman uyanık çalışsın)
-            - deep_sleep.prevent: derin_uyku
+            - script.execute: durum_gonder_script     # erken/best-effort check-in
+            - script.execute: kritik_izleme_watchdog  # X sn içinde cevap gelmezse kendi kendine tekrar uyu
 esp32:
   board: esp32cam
   framework:
@@ -109,13 +109,25 @@ i2c:
     scl: GPIO14
     scan: true
     frequency: 100kHz
+# NVS'de kalıcı olan kritik_uyku_modu bayrağını reflash atmadan (HA/ESPHome
+# API üzerinden) kontrol edebilmek için debug switch'i
+switch:
+  - platform: template
+    name: "Kritik Uyku Modu (Debug)"
+    id: kritik_uyku_modu_switch
+    entity_category: "diagnostic"
+    lambda: 'return id(kritik_uyku_modu);'
+    turn_on_action:
+      - lambda: 'id(kritik_uyku_modu) = true;'
+    turn_off_action:
+      - script.execute: uyan_modu
 deep_sleep:
   id: derin_uyku
-  # Kritik modda her uyanışta bu kadar süre açık kal (check-in göndermeye yeter),
-  # süre dolunca ana cihazdan "devam" cevabı gelmediyse otomatik tekrar uyur.
-  run_duration: 30s
-  # Kritik modda uyku süresi (ana cihazın 30dk'lık yedek periyodundan kısa
-  # tutuyoruz ki ana cihaz normale döndüğünde servo en geç bu kadar sürede fark etsin)
+  # Artık asıl "ne zaman tekrar uyu" kararını kritik_izleme_watchdog scripti
+  # veriyor (WiFi bağlanma süresinden bağımsız, kendi sabit süresi var).
+  # Bu run_duration sadece watchdog bir şekilde çalışmazsa diye donanımsal
+  # bir güvenlik tavanı — normalde hiç devreye girmemeli.
+  run_duration: 60s
   sleep_duration: 5min
 # ========================================================
 # OUTPUTS
@@ -245,9 +257,23 @@ script:
     mode: single
     then:
       - lambda: 'id(kritik_uyku_modu) = false;'
-      - deep_sleep.prevent: derin_uyku   # olası run_duration geri sayımını iptal et
+      - script.stop: kritik_izleme_watchdog  # bekleyen "tekrar uyu" watchdog'unu iptal et
+      - deep_sleep.prevent: derin_uyku
       - logger.log: "Normal çalışmaya dönüldü."
       - script.execute: durum_gonder_script
+
+  # Ana cihazdan X sn içinde cevap (0x05) gelmezse kendi kendine tekrar uykuya
+  # dönen watchdog. run_duration/WiFi bağlanma süresinden bağımsız çalışır.
+  - id: kritik_izleme_watchdog
+    mode: restart
+    then:
+      - delay: 20s
+      - if:
+          condition:
+            lambda: 'return id(kritik_uyku_modu);'
+          then:
+            - logger.log: "20sn içinde ana cihazdan cevap gelmedi, tekrar uykuya dönülüyor."
+            - deep_sleep.enter: derin_uyku
 # ========================================================
 # INTERVALS
 # ========================================================

@@ -43,7 +43,12 @@ esphome:
                     - delay: 50ms
                     - if:
                         condition:
-                          lambda: 'return isnan(id(pil_voltaji).state) || id(pil_voltaji).state < 3.1;'
+                          # DİKKAT: bu eşik 3.15 (kritik tetikleyici) eşiğinin ALTINDA
+                          # olmamalı — aksi halde 3.10-3.15V bandında "toparlandı"
+                          # sanıp tam açılışa geçer, yük binince tekrar 3.15 altına
+                          # düşer ve saniyeler içinde tekrar kritik uykuya döner
+                          # (sınırda salınım/oscillation riski).
+                          lambda: 'return isnan(id(pil_voltaji).state) || id(pil_voltaji).state < 3.2;'
                         then:
                           # NaN burada gerçek bir ADC/donanım problemine işaret eder;
                           # emin olamadığımızda güvenli tarafta kalıp uyumaya devam ediyoruz.
@@ -1504,9 +1509,13 @@ script:
     mode: queued
     then:
       - logger.log: "ESP-NOW: Pil Kritik! Servo uyku moduna alındı"
-      - espnow.send:
-          address: !secret servo_mac_address
-          data: [0x04]
+      - repeat:
+          count: 3
+          then:
+            - espnow.send:
+                address: !secret servo_mac_address
+                data: [0x04]
+            - delay: 150ms
 
   - id: espnow_uyan_modu
     mode: queued
@@ -2101,8 +2110,8 @@ sensor:
         then:
           - logger.log: "!!! KRİTİK VOLTAJ !!! Pil tükendi, sistem güvenli uykuya geçiyor."
           - lambda: 'id(kritik_pil_uykusu) = true;'
-          - script.execute: espnow_uyku_modu   # servoyu da uyku moduna al
-          - delay: 200ms                        # paketin gitmesi için kısa pay
+          - script.execute: espnow_uyku_modu   # servoyu da uyku moduna al (3 kez dener)
+          - script.wait: espnow_uyku_modu      # gönderimler tamamlanana kadar bekle
           - lvgl.pause: 
           - light.turn_off: ekran_arka_isigi
           - light.turn_off: rgb_led

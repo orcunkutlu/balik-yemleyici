@@ -200,13 +200,13 @@ espnow:
     - !secret servo_mac_address
   on_receive:
     - lambda: |-
-        id(servo_son_gorulme) = millis();   // komut alındıysa servo "canlı" say
+        id(servo_son_gorulme) = millis();
         if (size < 1) return;
         uint8_t komut_kodu = data[0];
         switch (komut_kodu) {
           case 0x03:
             if (size >= 3) {
-              uint8_t yem_yuzdesi = data[2];  // data[1] zaten 0x00
+              uint8_t yem_yuzdesi = data[2];
               ESP_LOGI("EspNow_Servo", "[0x03] Yem seviyesi: %u%%", yem_yuzdesi);
               id(yem_seviyesi_sensor).publish_state(yem_yuzdesi);
               id(son_yem_seviyesi) = yem_yuzdesi;
@@ -217,13 +217,7 @@ espnow:
             if (size >= 2) {
               uint8_t durum_kodu = data[1];
               ESP_LOGI("EspNow_Servo", "[0x10] Servo modülü çevrimiçi. Durum Kodu: 0x%02X", durum_kodu);
-              // Servo "uyandım, ne yapayım?" diye check-in yaptı.
-              // Ana cihazın kendi pil durumuna göre cevap ver:
-              if (id(kritik_pil_uykusu)) {
-                id(espnow_uyku_modu).execute();   // hâlâ kritik: tekrar uyu
-              } else {
-                id(espnow_uyan_modu).execute();   // her şey normal: devam et
-              }
+              // NOT: komut gönderme işi artık burada değil — servo_online.on_press'te
             }
             break;
             
@@ -1506,7 +1500,7 @@ script:
             return {0x02, (uint8_t)aci};
 
   - id: espnow_uyku_modu
-    mode: queued
+    mode: single
     then:
       - logger.log: "ESP-NOW: Pil Kritik! Servo uyku moduna alındı"
       - repeat:
@@ -1518,7 +1512,7 @@ script:
             - delay: 150ms
 
   - id: espnow_uyan_modu
-    mode: queued
+    mode: single
     then:
       - deep_sleep.prevent: derin_uyku
       - logger.log: "ESP-NOW: Pil normale döndü, servoya devam komutu gönderildi"
@@ -2382,11 +2376,18 @@ binary_sensor:
     lambda: |-
       return (id(servo_son_gorulme) != 0) &&
              (millis() - id(servo_son_gorulme) < 90000);
-    on_press:      # online'a geçince
+    on_press:      # offline -> online geçişi (yalnızca BİR KEZ tetiklenir)
       - lvgl.label.update:
           id: header_servo_icon
-          text_color: 0x22C55E   # yeşil
-    on_release:    # offline'a geçince
+          text_color: 0x22C55E
+      - if:
+          condition:
+            lambda: 'return id(kritik_pil_uykusu);'
+          then:
+            - script.execute: espnow_uyku_modu
+          else:
+            - script.execute: espnow_uyan_modu
+    on_release:
       - lvgl.label.update:
           id: header_servo_icon
-          text_color: 0xEF4444   # kırmızı (şu anki renginiz)
+          text_color: 0xEF4444

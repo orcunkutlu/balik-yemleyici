@@ -72,7 +72,6 @@ espnow:
           case 0x02:  // SERVO_ACI_AYARLA
             if (size >= 2) {
               int8_t aci = (int8_t)data[1];
-              // Değeri -100 ile 100 arasında sınırlar
               if (aci < -100) aci = -100;
               if (aci > 100) aci = 100;
               ESP_LOGI("espnow", "Servo açı ayarı güncellendi: %d%%", aci);
@@ -84,12 +83,20 @@ espnow:
             id(durum_gonder_script).execute();
             break;
           case 0x04: // Derin UYKUYA gir (pil kritik)
-            ESP_LOGI("espnow", "Uykuya giriyorum");
-            id(uyku_modu).execute();
+            if (!id(kritik_uyku_modu)) {
+              ESP_LOGI("espnow", "Uykuya giriyorum");
+              id(uyku_modu).execute();
+            } else {
+              ESP_LOGD("espnow", "Zaten kritik uyku modunda, komut yoksayildi");
+            }
             break;
           case 0x05: // UYAN / devam et (pil normale döndü)
-            ESP_LOGI("espnow", "Uyanma komutu alindi, normal calismaya donuluyor");
-            id(uyan_modu).execute();
+            if (id(kritik_uyku_modu)) {
+              ESP_LOGI("espnow", "Uyanma komutu alindi, normal calismaya donuluyor");
+              id(uyan_modu).execute();
+            } else {
+              ESP_LOGD("espnow", "Zaten uyanik, komut yoksayildi");
+            }
             break;
           default:
             ESP_LOGW("espnow", "Bilinmeyen komut: 0x%02X", komut);

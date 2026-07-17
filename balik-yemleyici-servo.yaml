@@ -5,6 +5,20 @@
 esphome:
   name: balik-yemleyici-servo
   friendly_name: Balık Yemleyici Servo
+  on_boot:
+    priority: 600
+    then:
+      - if:
+          condition:
+            lambda: 'return id(kritik_uyku_modu);'
+          then:
+            # Kritik moddayız: ana cihaza "uyandım" de, run_duration dolunca
+            # cevap gelmediyse zaten otomatik tekrar uyuyacak
+            - script.execute: durum_gonder_script
+          else:
+            # Normal mod: run_duration'ın otomatik uyku tetiklemesini iptal et,
+            # cihaz açık kalsın (eskisi gibi her zaman uyanık çalışsın)
+            - deep_sleep.prevent: derin_uyku
 esp32:
   board: esp32cam
   framework:
@@ -68,9 +82,13 @@ espnow:
             ESP_LOGI("espnow", "Durum istegi alindi");
             id(durum_gonder_script).execute();
             break;
-          case 0x04: // Derin UYKUYA gir
+          case 0x04: // Derin UYKUYA gir (pil kritik)
             ESP_LOGI("espnow", "Uykuya giriyorum");
             id(uyku_modu).execute();
+            break;
+          case 0x05: // UYAN / devam et (pil normale döndü)
+            ESP_LOGI("espnow", "Uyanma komutu alindi, normal calismaya donuluyor");
+            id(uyan_modu).execute();
             break;
           default:
             ESP_LOGW("espnow", "Bilinmeyen komut: 0x%02X", komut);
@@ -92,6 +110,12 @@ i2c:
     frequency: 100kHz
 deep_sleep:
   id: derin_uyku
+  # Kritik modda her uyanışta bu kadar süre açık kal (check-in göndermeye yeter),
+  # süre dolunca ana cihazdan "devam" cevabı gelmediyse otomatik tekrar uyur.
+  run_duration: 10s
+  # Kritik modda uyku süresi (ana cihazın 30dk'lık yedek periyodundan kısa
+  # tutuyoruz ki ana cihaz normale döndüğünde servo en geç bu kadar sürede fark etsin)
+  sleep_duration: 5min
 # ========================================================
 # OUTPUTS
 # ========================================================
@@ -151,6 +175,10 @@ globals:
     type: int
     restore_value: no
     initial_value: "92"
+  - id: kritik_uyku_modu
+    type: bool
+    restore_value: yes
+    initial_value: "false"
 # ========================================================
 # SCRIPTS
 # ========================================================
@@ -207,9 +235,18 @@ script:
   - id: uyku_modu
     mode: single
     then:
-      - deep_sleep.enter:
-          id: derin_uyku
-          sleep_duration: 15min
+      - lambda: 'id(kritik_uyku_modu) = true;'
+      - logger.log: "Kritik pil: uyku döngüsüne giriliyor."
+      # sleep_duration/run_duration artık deep_sleep: bloğunda tanımlı
+      - deep_sleep.enter: derin_uyku
+
+  - id: uyan_modu
+    mode: single
+    then:
+      - lambda: 'id(kritik_uyku_modu) = false;'
+      - deep_sleep.prevent: derin_uyku   # olası run_duration geri sayımını iptal et
+      - logger.log: "Normal çalışmaya dönüldü."
+      - script.execute: durum_gonder_script
 # ========================================================
 # INTERVALS
 # ========================================================

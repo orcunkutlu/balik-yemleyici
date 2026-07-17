@@ -5,22 +5,60 @@ esphome:
   name: balik-yemleyici-by-orcun
   friendly_name: "Balık Yemleyici By Orçun"
   on_boot:
-    priority: -100
-    then:
-      - lvgl.page.show: page_boot
-      - lvgl.label.update:
-          id: header_power_icon
-          text: "\U000F1C3C"       # Priz ikonu (varsayılan)
-          text_color: 0x10B981    # Yeşil
-      # 3. Saniye: Ana Ekran Geçişi
-      - delay: 3s
-      - lvgl.page.show: page_home
-      - lvgl.widget.show: navbar_container
-      - lvgl.widget.show: hdr_shb_bar
-      # Ekranı başlangıçta güncelle
-      - script.execute: yemleme_guncellemesi_ekran
-      - component.update: son_yemleme_ha
-      - lambda: 'id(yem_seviyesi_sensor).publish_state(id(son_yem_seviyesi));'
+    # 1) HIZLI ÖN-KONTROL: kritik pil uykusundan çıkıldıysa, ekran/animasyon
+    #    beklemeden voltajı tekrar ölç; hâlâ kritikse ve AC/USB yoksa
+    #    hemen tekrar uykuya dön (30dk'lık body-varsayılan wake döngüsünde
+    #    3sn'lik boot gecikmesi + ~45sn'lik filtre penceresini beklememek için)
+    - priority: 200
+      then:
+        - if:
+            condition:
+              lambda: 'return id(kritik_pil_uykusu);'
+            then:
+              - if:
+                  # AC/USB zaten takılıysa hiç ADC beklemeye gerek yok, direkt devam
+                  condition:
+                    binary_sensor.is_off: batarya_modu
+                  then:
+                    - lambda: 'id(kritik_pil_uykusu) = false;'
+                    - logger.log: "Kritik uykudan çıkış: AC/USB takılı, normal açılışa devam ediliyor."
+                    - script.execute: espnow_uyan_modu   # servo uyanıksa yakalasın diye erken bir deneme
+                  else:
+                    # Hâlâ bataryadayız: aynı sensörü art arda 3 kez tetikleyip
+                    # (filtredeki send_every:3 nedeniyle) taze bir ortalama al
+                    - component.update: pil_voltaji
+                    - delay: 200ms
+                    - component.update: pil_voltaji
+                    - delay: 200ms
+                    - component.update: pil_voltaji
+                    - delay: 200ms
+                    - if:
+                        condition:
+                          lambda: 'return isnan(id(pil_voltaji).state) || id(pil_voltaji).state < 3.2;'
+                        then:
+                          - logger.log: "Kritik uykudan hızlı kontrol: voltaj hâlâ düşük, tekrar uykuya dönülüyor."
+                          - deep_sleep.enter: derin_uyku
+                        else:
+                          - lambda: 'id(kritik_pil_uykusu) = false;'
+                          - logger.log: "Kritik uykudan çıkış: voltaj toparlanmış, normal açılışa devam ediliyor."
+                          - script.execute: espnow_uyan_modu   # servo uyanıksa yakalasın diye erken bir deneme
+    # 2) NORMAL AÇILIŞ: her zamanki ekran/animasyon akışı
+    - priority: -100
+      then:
+        - lvgl.page.show: page_boot
+        - lvgl.label.update:
+            id: header_power_icon
+            text: "\U000F1C3C"       # Priz ikonu (varsayılan)
+            text_color: 0x10B981    # Yeşil
+        # 3. Saniye: Ana Ekran Geçişi
+        - delay: 3s
+        - lvgl.page.show: page_home
+        - lvgl.widget.show: navbar_container
+        - lvgl.widget.show: hdr_shb_bar
+        # Ekranı başlangıçta güncelle
+        - script.execute: yemleme_guncellemesi_ekran
+        - component.update: son_yemleme_ha
+        - lambda: 'id(yem_seviyesi_sensor).publish_state(id(son_yem_seviyesi));'
 
 esp32:
   variant: esp32s3
@@ -124,8 +162,19 @@ wifi:
     dns1: 8.8.8.8
     dns2: 1.1.1.1
 
-#deep_sleep:
-#  id: derin_uyku
+deep_sleep:
+  id: derin_uyku
+  # Yedek/güvenlik mekanizması: pin tetiklemesi bir şekilde kaçırılırsa
+  # yine de periyodik olarak voltajı kontrol etmek için (asıl uyandırma artık aşağıdaki pin ile)
+  sleep_duration: 30min
+  # GPIO7, zaten "Batarya Modu" binary_sensor'unun okuduğu AC/USB algılama hattı.
+  # USB/AC geri geldiğinde bu pin seviye değiştirir; deep_sleep bunu ext0 ile
+  # donanımsal olarak dinleyip cihazı ANINDA (30dk beklemeden) uyandırabilir.
+  wakeup_pin:
+    number: GPIO7
+    inverted: false        # fiziksel HIGH = AC/USB takılı (binary_sensor'daki inverted:true ile aynı hattın tersini yorumluyor, çelişki değil)
+    allow_other_uses: true # aynı pin binary_sensor tarafından da kullanılıyor
+  wakeup_pin_mode: KEEP_AWAKE  # uykuya girerken pin zaten "AC var" diyorsa hiç uyuma
 
 espnow:
   enable_on_boot: true
@@ -151,8 +200,13 @@ espnow:
             if (size >= 2) {
               uint8_t durum_kodu = data[1];
               ESP_LOGI("EspNow_Servo", "[0x10] Servo modülü çevrimiçi. Durum Kodu: 0x%02X", durum_kodu);
-              // İleride ana ekrana "Servo Bağlantısı: OK" yazdırmak istersen 
-              // burayı bir template binary_sensor tetiklemek için kullanabiliriz.
+              // Servo "uyandım, ne yapayım?" diye check-in yaptı.
+              // Ana cihazın kendi pil durumuna göre cevap ver:
+              if (id(kritik_pil_uykusu)) {
+                id(espnow_uyku_modu).execute();   // hâlâ kritik: tekrar uyu
+              } else {
+                id(espnow_uyan_modu).execute();   // her şey normal: devam et
+              }
             }
             break;
             
@@ -1441,6 +1495,14 @@ script:
       - espnow.send:
           address: !secret servo_mac_address
           data: [0x04]
+
+  - id: espnow_uyan_modu
+    mode: queued
+    then:
+      - logger.log: "ESP-NOW: Pil normale döndü, servoya devam komutu gönderildi"
+      - espnow.send:
+          address: !secret servo_mac_address
+          data: [0x05]
   - id: yemleme_script
     mode: single
     then:
@@ -1763,6 +1825,10 @@ globals:
     type: int
     restore_value: yes
     initial_value: "0"
+  - id: kritik_pil_uykusu
+    type: bool
+    restore_value: yes
+    initial_value: "false"
 
 number:
   - platform: template
@@ -2017,16 +2083,21 @@ sensor:
 #    VOLTAJ YUZDE KISMINI KULLANMAK DAHA MANTIKLI GELDI
 ################################################################
 
-#    on_value_range:
-#      - below: 3.15
-#        then:
-#          - logger.log: "!!! KRİTİK VOLTAJ !!! Pil tükendi, sistem güvenli kapatılıyor."
-#          - lvgl.pause: 
-#          - light.turn_off: ekran_arka_isigi
-#          - delay: 2s
-#          - deep_sleep.enter:
-#              - id: derin_uyku
-#              - sleep_duration: 15min
+    on_value_range:
+      - below: 3.15
+        then:
+          - logger.log: "!!! KRİTİK VOLTAJ !!! Pil tükendi, sistem güvenli uykuya geçiyor."
+          - lambda: 'id(kritik_pil_uykusu) = true;'
+          - script.execute: espnow_uyku_modu   # servoyu da uyku moduna al
+          - delay: 200ms                        # paketin gitmesi için kısa pay
+          - lvgl.pause: 
+          - light.turn_off: ekran_arka_isigi
+          - light.turn_off: rgb_led
+          - delay: 1s
+          # sleep_duration/wakeup_pin artık deep_sleep: bloğunda tanımlı;
+          # burada override etmiyoruz ki GPIO7 (AC/USB) uyandırma pini devrede kalsın
+          - deep_sleep.enter: derin_uyku
+
   # 2. Voltaj Değerini Yüzdeye (%) Dönüştüren Şablon Sensör
   - platform: template
     name: "Pil Yüzdesi"
@@ -2250,6 +2321,7 @@ binary_sensor:
       number: GPIO7
       mode: INPUT
       inverted: true
+      allow_other_uses: true
     name: "Batarya Modu"
     id: batarya_modu
     icon: "mdi:battery-clock"

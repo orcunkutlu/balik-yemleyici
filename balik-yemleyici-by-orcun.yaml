@@ -5,7 +5,13 @@ esphome:
   name: balik-yemleyici-by-orcun
   friendly_name: "Balık Yemleyici By Orçun"
   on_boot:
-    # 1) HIZLI ÖN-KONTROL: kritik pil uykusundan çıkıldıysa, ekran/animasyon
+    # 1) NORMAL AÇILIŞTA UYKUYU ENGELLE: cihaz boot sırasında bekleme/animasyon
+    #    akışına girmeden önce derin uykuyu iptal et. Böylece normal çalışma
+    #    sırasında cihazın kendiliğinden uykuya girmesi engellenir.
+    - priority: 600
+      then:
+        - deep_sleep.prevent: derin_uyku
+    # 2) HIZLI ÖN-KONTROL: kritik pil uykusundan çıkıldıysa, ekran/animasyon
     #    beklemeden voltajı tekrar ölç; hâlâ kritikse ve AC/USB yoksa
     #    hemen tekrar uykuya dön (30dk'lık body-varsayılan wake döngüsünde
     #    3sn'lik boot gecikmesi + ~45sn'lik filtre penceresini beklememek için)
@@ -144,6 +150,7 @@ wifi:
 
   on_connect:
     then:
+      - deep_sleep.prevent: derin_uyku
       - lvgl.label.update:
           id: header_wifi_icon
           text: "\U000F05A9"
@@ -1504,6 +1511,7 @@ script:
   - id: espnow_uyan_modu
     mode: queued
     then:
+      - deep_sleep.prevent: derin_uyku
       - logger.log: "ESP-NOW: Pil normale döndü, servoya devam komutu gönderildi"
       - espnow.send:
           address: !secret servo_mac_address

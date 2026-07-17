@@ -47,6 +47,7 @@ wifi:
     dns2: 8.8.8.8
   on_connect:
     then:
+      - deep_sleep.prevent: derin_uyku
       - script.execute: durum_gonder_script
 # =======================================================
 # ESP-NOW: Ana cihazdan komut alma

@@ -112,7 +112,7 @@ deep_sleep:
   id: derin_uyku
   # Kritik modda her uyanışta bu kadar süre açık kal (check-in göndermeye yeter),
   # süre dolunca ana cihazdan "devam" cevabı gelmediyse otomatik tekrar uyur.
-  run_duration: 10s
+  run_duration: 30s
   # Kritik modda uyku süresi (ana cihazın 30dk'lık yedek periyodundan kısa
   # tutuyoruz ki ana cihaz normale döndüğünde servo en geç bu kadar sürede fark etsin)
   sleep_duration: 5min

@@ -25,18 +25,23 @@ esphome:
                     - script.execute: espnow_uyan_modu   # servo uyanıksa yakalasın diye erken bir deneme
                   else:
                     # Hâlâ bataryadayız: aynı sensörü art arda 3 kez tetikleyip
-                    # (filtredeki send_every:3 nedeniyle) taze bir ortalama al
+                    # taze bir okuma al. Not: sliding_window_moving_average
+                    # varsayılan olarak (send_first_at) ilk ham örnekte bile
+                    # anında yayın yapar, yani "nan" riski sanıldığı kadar
+                    # yüksek değil — yine de birkaç örnek almak gürültüyü azaltır.
                     - component.update: pil_voltaji
-                    - delay: 200ms
+                    - delay: 50ms
                     - component.update: pil_voltaji
-                    - delay: 200ms
+                    - delay: 50ms
                     - component.update: pil_voltaji
-                    - delay: 200ms
+                    - delay: 50ms
                     - if:
                         condition:
-                          lambda: 'return isnan(id(pil_voltaji).state) || id(pil_voltaji).state < 3.2;'
+                          lambda: 'return isnan(id(pil_voltaji).state) || id(pil_voltaji).state < 3.1;'
                         then:
-                          - logger.log: "Kritik uykudan hızlı kontrol: voltaj hâlâ düşük, tekrar uykuya dönülüyor."
+                          # NaN burada gerçek bir ADC/donanım problemine işaret eder;
+                          # emin olamadığımızda güvenli tarafta kalıp uyumaya devam ediyoruz.
+                          - logger.log: "Kritik uykudan hızlı kontrol: voltaj hâlâ düşük (ya da okunamadı), tekrar uykuya dönülüyor."
                           - deep_sleep.enter: derin_uyku
                         else:
                           - lambda: 'id(kritik_pil_uykusu) = false;'

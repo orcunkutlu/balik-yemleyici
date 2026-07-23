@@ -600,7 +600,7 @@ lvgl:
                 text_font: font_12
             - label:
                 id: header_servo_icon
-                x: 170
+                x: 150
                 y: 10
                 width: 20
                 height: 20
@@ -699,10 +699,11 @@ lvgl:
                         height: 80
                         spin_time: 1000ms
                         arc_length: 60deg
-                        arc_width: 1
+                        arc_width: 5
                         arc_color: 0x1C3B6D
                         indicator:
                           arc_color: 0xFBBF24
+                          arc_width: 5
   pages:
     - id: page_home
       bg_color: 0x111827
@@ -1464,10 +1465,11 @@ lvgl:
             height: 80
             spin_time: 1000ms
             arc_length: 60deg
-            arc_width: 1
+            arc_width: 5
             arc_color: 0x1C3B6D
             indicator:
               arc_color: 0xFBBF24
+              arc_width: 5
 
         - image:
             id: logo_boot

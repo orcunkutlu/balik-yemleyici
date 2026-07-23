@@ -234,7 +234,8 @@ espnow:
 captive_portal:
 
 image:
-  - file: "resimler/logom.png"
+  - platform: file
+    file: resimler/logom.png
     id: boot_logo
     type: RGB565
     resize: 200x200
@@ -281,7 +282,7 @@ output:
 # FONTLAR
 # ============================================================
 font:
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/pio/fonts/ubuntusans_regular.ttf"
     id: font_10
     size: 10
     bpp: 4
@@ -375,37 +376,37 @@ font:
       - "w"
       - "y"
       - "z"
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/pio/fonts/ubuntusans_regular.ttf"
     id: font_12
     size: 12
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/pio/fonts/ubuntusans_regular.ttf"
     id: font_14
     size: 14
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/pio/fonts/ubuntusans_regular.ttf"
     id: font_16
     size: 16
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/pio/fonts/ubuntusans_regular.ttf"
     id: font_18
     size: 18
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/ubuntusans_regular.ttf"
+  - file: "/pio/fonts/ubuntusans_regular.ttf"
     id: font_24
     size: 24
     bpp: 4
     glyphs: *ascii_glyphs
 
-  - file: "fonts/materialdesignicons-webfont.ttf"
+  - file: "/pio/fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons
     size: 24
     bpp: 4
@@ -434,7 +435,7 @@ font:
       "\U000F008E", # mdi-battery-outline
       "\U000F0091", # mdi-battery-unknown
     ]
-  - file: "fonts/materialdesignicons-webfont.ttf"
+  - file: "/pio/fonts/materialdesignicons-webfont.ttf"
     id: mdi_icons_large
     size: 48
     bpp: 4
@@ -1615,7 +1616,7 @@ script:
             if (id(secili_plan) == 1) h = id(yemleme_sira_1).hour;
             else if (id(secili_plan) == 2) h = id(yemleme_sira_2).hour;
             else h = id(yemleme_sira_3).hour;
-            char buf[3];
+            char buf[8];
             sprintf(buf, "%02d", h);
             return buf;
       - lvgl.label.update:
@@ -1625,7 +1626,7 @@ script:
             if (id(secili_plan) == 1) m = id(yemleme_sira_1).minute;
             else if (id(secili_plan) == 2) m = id(yemleme_sira_2).minute;
             else m = id(yemleme_sira_3).minute;
-            char buf[3];
+            char buf[8];
             sprintf(buf, "%02d", m);
             return buf;
   - id: akilli_yemleme_kontrolu
@@ -1686,7 +1687,7 @@ script:
           text: !lambda |-
             int dk = id(son_yemleme_saati);
             if (dk < 0) return std::string("--:--");
-            char buf[6];
+            char buf[16];
             snprintf(buf, sizeof(buf), "%02d:%02d", dk / 60, dk % 60);
             return std::string(buf);
       - lvgl.label.update:
@@ -2086,7 +2087,7 @@ sensor:
     attenuation: 12db
     accuracy_decimals: 2
     filters:
-      - multiply: 2.0
+      - multiply: 2.1
       - sliding_window_moving_average:
           window_size: 15
           send_every: 3
@@ -2218,7 +2219,7 @@ text_sensor:
     lambda: |-
       int dk = id(son_yemleme_saati);
       if (dk < 0) return std::string("Henüz Yemleme Yok");
-      char buf[6];
+      char buf[16];
       snprintf(buf, sizeof(buf), "%02d:%02d", dk / 60, dk % 60);
       return std::string(buf);
   - platform: template

@@ -91,8 +91,8 @@ namespace esphome {
     void DS3231::dump_config() {
       ESP_LOGCONFIG(TAG, "DS3231 RTC:");
       ESP_LOGCONFIG(TAG, "  I2C Address: 0x%02X", this->address_);
-      ESP_LOGCONFIG(TAG, "  Update Interval: %u min", this->update_interval_min_);
-      ESP_LOGCONFIG(TAG, "  Read Interval: %u min", this->read_interval_min_);
+      ESP_LOGCONFIG(TAG, "  Update Interval: %lu min", this->update_interval_min_);
+      ESP_LOGCONFIG(TAG, "  Read Interval: %lu min", this->read_interval_min_);
       LOG_I2C_DEVICE(this);
       if (this->rtc_ != nullptr) {
         ESP_LOGCONFIG(TAG, "  Reference Time Source: configured");

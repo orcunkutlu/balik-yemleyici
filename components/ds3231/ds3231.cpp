@@ -6,31 +6,31 @@ namespace esphome {
     static const char *const TAG = "ds3231";
 
     void DS3231::setup() {
-      ESP_LOGI(TAG, "Setting up DS3231...");
+      ESP_LOGI(TAG, "DS3231 başlatılıyor...");
 
       if (!this->read_rtc_()) {
-        ESP_LOGE(TAG, "RTC not found at I2C address 0x%02X", this->address_);
+        ESP_LOGE(TAG, "RTC, 0x%02X I2C adresinde bulunamadı!", this->address_);
         this->mark_failed();
         return;
       }
 
       this->found_ = true;
-      ESP_LOGI(TAG, "RTC found at I2C address 0x%02X", this->address_);
+      ESP_LOGI(TAG, "RTC bulundu (I2C Adresi: 0x%02X)", this->address_);
       this->restore_system_time();
 
       auto t = this->get_time();
 
       if (t.year > 2000) {
-        ESP_LOGI(TAG, "RTC time read: %04d-%02d-%02d %02d:%02d:%02d",
+        ESP_LOGI(TAG, "RTC saati okundu: %04d-%02d-%02d %02d:%02d:%02d",
                  t.year, t.month, t.day, t.hour, t.minute, t.second);
       }
 
-      // Boot'ta SNTP varsa senkronize et
+      // Açılışta (Boot) SNTP referansı varsa senkronize et
       if (this->rtc_ != nullptr) {
         auto ref_now = this->rtc_->now();
         if (ref_now.is_valid()) {
           this->sync();
-          ESP_LOGI(TAG, "RTC synchronized from SNTP during startup");
+          ESP_LOGI(TAG, "RTC, açılış sırasında SNTP (Internet) saati ile eşitlendi.");
         }
       }
     }
@@ -39,7 +39,7 @@ namespace esphome {
       auto rtc_now = this->now();
 
       if (!rtc_now.is_valid()) {
-        ESP_LOGW(TAG, "RTC time invalid, cannot restore system clock");
+        ESP_LOGW(TAG, "RTC saati geçersiz, sistem saati geri yüklenemiyor!");
         return;
       }
 
@@ -51,7 +51,7 @@ namespace esphome {
 
       ESP_LOGI(
         TAG,
-        "System clock restored from RTC: %04d-%02d-%02d %02d:%02d:%02d",
+        "Sistem saati RTC'den geri yüklendi: %04d-%02d-%02d %02d:%02d:%02d",
         rtc_now.year,
         rtc_now.month,
         rtc_now.day_of_month,
@@ -60,28 +60,29 @@ namespace esphome {
         rtc_now.second
       );
     }
+
     void DS3231::loop() {
-      // Boş — update() periyodik çalışıyor
+      // Boş — update() periyodik olarak çalışıyor
     }
 
     void DS3231::update() {
-      // 1. Süre kontrolü: Tanımladığınız interval'ı milisaniye cinsinden kontrol ediyoruz.
+      // 1. Süre kontrolü: Tanımlanan aralık milisaniye cinsinden kontrol ediliyor.
       uint32_t current_time = millis();
       if (this->last_update_ != 0 && (current_time - this->last_update_ < (this->update_interval_min_ * 60000))) {
-        return; // Henüz 1 dakika geçmedi, işlemi atla
+        return; // Henüz belirlenen zaman geçmedi, işlemi atla
       }
       this->last_update_ = current_time; // Süre geçtiyse, son güncellemeyi şu an olarak kaydet
 
-      ESP_LOGV(TAG, "update() called");
+      ESP_LOGV(TAG, "update() çağrıldı.");
 
       if (this->rtc_ == nullptr) {
-        ESP_LOGV(TAG, "No reference time source, skipping sync");
+        ESP_LOGV(TAG, "Referans saat kaynağı tanımlı değil, senkronizasyon atlanıyor.");
         return;
       }
 
       auto ref_now = this->rtc_->now();
       if (!ref_now.is_valid()) {
-        ESP_LOGW(TAG, "Reference time (SNTP) not valid, skipping sync to RTC");
+        ESP_LOGW(TAG, "Referans saat (SNTP) henüz geçerli değil, RTC senkronizasyonu atlanıyor.");
         return;
       }
 
@@ -89,33 +90,33 @@ namespace esphome {
     }
 
     void DS3231::dump_config() {
-      ESP_LOGCONFIG(TAG, "DS3231 RTC:");
-      ESP_LOGCONFIG(TAG, "  I2C Address: 0x%02X", this->address_);
-      ESP_LOGCONFIG(TAG, "  Update Interval: %lu min", this->update_interval_min_);
-      ESP_LOGCONFIG(TAG, "  Read Interval: %lu min", this->read_interval_min_);
+      ESP_LOGCONFIG(TAG, "DS3231 RTC Ayarları:");
+      ESP_LOGCONFIG(TAG, "  I2C Adresi: 0x%02X", this->address_);
+      ESP_LOGCONFIG(TAG, "  Güncelleme Aralığı: %lu dk", this->update_interval_min_);
+      ESP_LOGCONFIG(TAG, "  Okuma Aralığı: %lu dk", this->read_interval_min_);
       LOG_I2C_DEVICE(this);
       if (this->rtc_ != nullptr) {
-        ESP_LOGCONFIG(TAG, "  Reference Time Source: configured");
+        ESP_LOGCONFIG(TAG, "  Referans Saat Kaynağı: Yapılandırıldı");
       } else {
-        ESP_LOGCONFIG(TAG, "  Reference Time Source: none");
+        ESP_LOGCONFIG(TAG, "  Referans Saat Kaynağı: Yok");
       }
     }
 
     void DS3231::sync() {
       if (this->rtc_ == nullptr) {
-        ESP_LOGW(TAG, "No reference time source configured");
+        ESP_LOGW(TAG, "Yapılandırılmış referans saat kaynağı bulunamadı!");
         return;
       }
 
       auto ref_now = this->rtc_->now();
       if (!ref_now.is_valid()) {
-        ESP_LOGW(TAG, "Reference time not valid, skipping sync to RTC");
+        ESP_LOGW(TAG, "Referans saat geçerli değil, RTC senkronizasyonu atlanıyor!");
         return;
       }
 
       this->set_time(ref_now.year, ref_now.month, ref_now.day_of_month,
                      ref_now.hour, ref_now.minute, ref_now.second, ref_now.day_of_week);
-      ESP_LOGI(TAG, "RTC synced from reference: %04d-%02d-%02d %02d:%02d:%02d",
+      ESP_LOGI(TAG, "RTC referans saatten eşitlendi: %04d-%02d-%02d %02d:%02d:%02d",
                ref_now.year, ref_now.month, ref_now.day_of_month,
                ref_now.hour, ref_now.minute, ref_now.second);
     }
@@ -131,15 +132,15 @@ namespace esphome {
       tmpbuffer[6] = this->dec_to_bcd(year - 2000);
 
       if (!this->write_bytes(0, tmpbuffer, 7)) {
-        ESP_LOGE(TAG, "Failed to write time to RTC");
+        ESP_LOGE(TAG, "Saat verisi RTC'ye yazılamadı!");
       } else {
-        ESP_LOGD(TAG, "Time written to RTC");
+        ESP_LOGD(TAG, "Saat verisi RTC'ye başarıyla yazıldı.");
       }
     }
 
     bool DS3231::read_rtc_() {
       if (!this->read_bytes(0, this->databuffer_, 7)) {
-        ESP_LOGE(TAG, "Failed to read from RTC (I2C error)");
+        ESP_LOGE(TAG, "RTC okunurken hata oluştu (I2C hatası)!");
         return false;
       }
       return true;
@@ -147,7 +148,7 @@ namespace esphome {
 
     Time DS3231::get_time() {
       if (!this->read_rtc_()) {
-        ESP_LOGE(TAG, "Failed to read time registers");
+        ESP_LOGE(TAG, "Saat yazmaçları (registers) okunamadı!");
         return Time{0, 0, 0, 0, 0, 0, 0};
       }
 
@@ -168,7 +169,7 @@ namespace esphome {
       Time t = this->get_time();
 
       if (t.year < 2000 || t.month < 1 || t.month > 12 || t.day < 1 || t.day > 31) {
-        ESP_LOGW(TAG, "Invalid RTC date values: %04d-%02d-%02d", t.year, t.month, t.day);
+        ESP_LOGW(TAG, "Geçersiz RTC tarih değerleri okundu: %04d-%02d-%02d", t.year, t.month, t.day);
         return ESPTime{};
       }
 
@@ -188,7 +189,7 @@ namespace esphome {
       rtc_time.recalc_timestamp_local();
 
       if (!rtc_time.is_valid()) {
-        ESP_LOGW(TAG, "Calculated timestamp invalid");
+        ESP_LOGW(TAG, "Hesaplanan zaman damgası (timestamp) geçersiz!");
         return ESPTime{};
       }
 

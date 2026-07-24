@@ -1560,6 +1560,8 @@ script:
           id(son_yemleme_saati) = now.hour * 60 + now.minute;
       - component.update: son_yemleme_ha
       - delay: 50ms
+      - component.update: sonraki_yemleme
+      - delay: 50ms
 
       - script.execute: yemleme_guncellemesi_ekran
       - delay: 500ms
